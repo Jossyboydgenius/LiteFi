@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # LiteFi Landing Page
 
 A modern, responsive landing page for LiteFi - a financial service platform offering auto loans, high-yield investments, and other financial solutions.
@@ -154,3 +155,6 @@ For inquiries about LiteFi services:
 - Address: 9A, Hospital Road, Gbagada, Lagos
 
 ---
+=======
+# LiteFi-Landing-page
+>>>>>>> 571a371134e224f8127fb5256c32e89f37f3076a
