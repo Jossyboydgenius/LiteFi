@@ -1,0 +1,207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+  --primary-red: 220, 38, 38;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+  font-family: "DM Sans", sans-serif;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+html {
+  height: -webkit-fill-available;
+}
+
+/* Mobile sidebar styles - updated to ensure solid background */
+.mobile-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  height: -webkit-fill-available;
+  background-color: #000000 !important;
+  z-index: 50;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease-in-out;
+}
+
+.mobile-sidebar.open {
+  transform: translateX(0);
+}
+
+.mobile-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 40;
+}
+
+.glassmorphism {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Other styles remain the same */
+.section-padding {
+  padding-top: 8rem;
+  padding-bottom: 4rem;
+  @apply md:py-24;
+}
+
+.container-padding {
+  @apply px-4 md:px-8 lg:px-16;
+}
+
+.heading-primary {
+  @apply text-4xl md:text-5xl font-bold leading-tight;
+}
+
+.heading-secondary {
+  @apply text-3xl font-bold;
+}
+
+.heading-tertiary {
+  @apply text-2xl font-bold;
+}
+
+.text-primary {
+  @apply text-gray-300 text-lg;
+}
+
+.section-title-red {
+  @apply text-red-600 font-bold text-sm tracking-wider;
+}
+
+/* .pill-container {
+  @apply bg-zinc-900 backdrop-blur-sm px-2 py-2 rounded-full border-zinc-800 inline-flex;
+} */
+
+.no-radius {
+  @apply rounded-none;
+}
+
+/* Fix for navbar transparency issues */
+.fixed-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  transition: all 0.3s ease;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.fixed-header.scrolled {
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+/* Add specific styles to override any transparency in the mobile sidebar */
+[class*="w-[50%]"],
+[class*="w-[60%]"] {
+  background-color: #000000 !important;
+}
+
+.btn-primary {
+  @apply bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 transition-all duration-300;
+  border-radius: 0;
+}
+
+.btn-secondary {
+  @apply border border-gray-700 hover:border-gray-500 text-white font-medium py-3 px-6 transition-all duration-300;
+  border-radius: 0;
+}
+
+.section-title-red {
+  @apply text-red-600 font-black text-sm uppercase tracking-wider;
+}
+
+/* Remove border radius from all components */
+.rounded,
+.rounded-md,
+.rounded-lg,
+.rounded-xl,
+.rounded-full,
+button,
+input {
+  border-radius: 0 !important;
+}
+
+/* Override shadcn components */
+:where(.css-dev-only-do-not-override-1vr7spz).ant-btn {
+  border-radius: 0 !important;
+}
+
+@layer utilities {
+  .no-radius {
+    border-radius: 0 !important;
+  }
+
+  .pill-container {
+    @apply bg-zinc-900 rounded-full px-2 py-2 border border-zinc-800;
+    border-radius: 9999px !important;
+  }
+
+  .circle-container {
+    @apply rounded-full flex items-center justify-center;
+    border-radius: 9999px !important;
+  }
+}
+
+/* Calendar styles */
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: rgb(220, 38, 38);
+  --rdp-background-color: rgb(220, 38, 38, 0.1);
+  margin: 0;
+}
+
+/* Fix calculator section mobile overflow */
+@media (max-width: 768px) {
+  #calculator .grid > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    /* padding-left: 0.75rem;
+    padding-right: 0.75rem; */
+    margin-bottom: 1.5rem;
+  }
+  
+  #calculator .bg-gray-50,
+  #calculator .bg-white {
+    padding: 1.5rem;
+    height: 100%;
+  }
+
+  #calculator .circle-container {
+    width: 32px !important;
+    height: 32px !important;
+  }
+}
+
+/* Calculator styles */
+#calculator .grid > div > div {
+  height: 100%;
+}
+
+#calculator .bg-gray-50,
+#calculator .bg-white {
+  height: 100%;
+}
