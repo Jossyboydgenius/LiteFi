@@ -278,3 +278,43 @@ input {
 #calculator .bg-white {
   height: 100%;
 }
+
+/* Add overflow control for animations */
+html, body {
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Only add overflow-hidden to select sections that really need it */
+.section-overflow-control {
+  overflow: hidden;
+}
+
+.motion-safe {
+  overflow: hidden;
+}
+
+/* Ensure motion components don't break layout */
+[data-framer-motion] {
+  overflow: hidden;
+}
+
+/* Hero Image Container - allow it to extend beyond its section */
+.hero-image-container {
+  position: relative;
+  z-index: 20;
+  margin-bottom: -60px;
+}
+
+@media (min-width: 768px) {
+  .hero-image-container {
+    margin-bottom: -120px;
+  }
+}
+
+/* Hero section with reduced height to reveal the extending image */
+#hero {
+  padding-bottom: 0;
+  overflow: visible !important;
+}
