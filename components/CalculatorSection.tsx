@@ -17,6 +17,7 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format, parse, isValid } from "date-fns"
+import { motion } from "framer-motion"
 
 export default function CalculatorSection() {
   const [investment, setInvestment] = useState(100000)
@@ -105,18 +106,30 @@ export default function CalculatorSection() {
   return (
     <section id="calculator" className="bg-white text-black section-padding">
       <div className="container mx-auto container-padding">
-        <div className="text-left mb-16">
+        <motion.div 
+          className="text-left mb-16"
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-100px" }}
+        >
           <div className="section-title-red mb-4">PLAN YOUR INVESTMENT</div>
           <h2 className="heading-secondary text-black mb-4">Calculate Your Future Returns</h2>
           <p className="text-gray-600">
             Estimate your returns and plan your investments with confidence—see how your money can grow over time.
           </p>
-        </div>
+        </motion.div>
 
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
             {/* Left Column - Calculator Input */}
-            <div className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
+            <motion.div 
+              className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]"
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              viewport={{ once: true, margin: "-100px" }}
+            >
               <div className="bg-gray-50 p-5 sm:p-8 md:p-10 lg:p-12 rounded-sm h-full">
                 <p className="text-sm text-gray-500 italic mb-10">
                   This is a simulation tool and results shown are estimates and do not guarantee actual returns.
@@ -255,14 +268,25 @@ export default function CalculatorSection() {
                   </div>
                 </div>
 
-                <Button className="bg-red-600 hover:bg-red-700 text-white w-full h-16 text-base font-medium">
-                  Calculate
-                </Button>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button className="bg-red-600 hover:bg-red-700 text-white w-full h-16 text-base font-medium">
+                    Calculate
+                  </Button>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Right Column - Investment Results */}
-            <div className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
+            <motion.div 
+              className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]"
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+              viewport={{ once: true, margin: "-100px" }}
+            >
               <div className="bg-white p-5 sm:p-10 rounded-sm h-full">
                 <div className="flex flex-col mb-8">
                   <div className="flex items-start mb-6">
@@ -336,7 +360,7 @@ export default function CalculatorSection() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
