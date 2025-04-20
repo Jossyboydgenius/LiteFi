@@ -152,5 +152,3 @@ For inquiries about LiteFi services:
 - Email: loan@litefi.ng
 - Phone: +234 810 837 6447
 - Address: 9A, Hospital Road, Gbagada, Lagos
-
----

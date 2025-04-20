@@ -117,7 +117,7 @@ export default function CalculatorSection() {
           <div className="grid md:grid-cols-2 gap-8">
             {/* Left Column - Calculator Input */}
             <div className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
-              <div className="bg-gray-50 p-5 sm:p-20 rounded-sm h-full">
+              <div className="bg-gray-50 p-5 sm:p-8 md:p-10 lg:p-12 rounded-sm h-full">
                 <p className="text-sm text-gray-500 italic mb-10">
                   This is a simulation tool and results shown are estimates and do not guarantee actual returns.
                 </p>
@@ -125,9 +125,9 @@ export default function CalculatorSection() {
                 <div className="mb-10">
                   <label className="block text-gray-600 mb-4">Principal Amount</label>
                   <div className="flex gap-4">
-                    <div className="w-1/3">
+                    <div className="w-1/3 xs:w-full">
                       <Select value={currency} onValueChange={setCurrency}>
-                        <SelectTrigger className="bg-white border-0 shadow-sm h-12 text-black">
+                        <SelectTrigger className="bg-white border-0 shadow-sm h-14 text-black flex justify-between items-center">
                           <SelectValue placeholder="EUR" />
                         </SelectTrigger>
                         <SelectContent className="bg-white">
@@ -138,13 +138,13 @@ export default function CalculatorSection() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="w-2/3">
+                    <div className="w-2/3 xs:w-full">
                       <Input
                         type="text"
                         placeholder="Type in amount"
                         value={investment}
                         onChange={(e) => setInvestment(Number(e.target.value))}
-                        className="bg-white border-0 shadow-sm focus:ring-0 text-right h-12 text-black"
+                        className="bg-white border-0 shadow-sm focus:ring-0 text-right xs:text-left h-14 text-black"
                       />
                     </div>
                   </div>
@@ -153,7 +153,7 @@ export default function CalculatorSection() {
                 <div className="mb-10">
                   <label className="block text-gray-600 mb-4">Tenure</label>
                   <Select value={tenure} onValueChange={setTenure}>
-                    <SelectTrigger className="bg-white border-0 shadow-sm h-12 text-black">
+                    <SelectTrigger className="bg-white border-0 shadow-sm h-14 text-black flex justify-between items-center">
                       <SelectValue placeholder="12 months" />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
@@ -177,10 +177,10 @@ export default function CalculatorSection() {
                             value={startDateInput}
                             onChange={handleStartDateInput}
                             maxLength={10}
-                            className="bg-white border-0 shadow-sm focus:ring-0 h-12 text-black pr-10"
+                            className="bg-white border-0 shadow-sm focus:ring-0 h-14 text-black pr-10"
                             onClick={() => setStartOpen(true)}
                           />
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none calendar-icon">
                             <Image 
                               src={calendarIcon} 
                               alt="Calendar" 
@@ -222,10 +222,10 @@ export default function CalculatorSection() {
                             value={endDateInput}
                             onChange={handleEndDateInput}
                             maxLength={10}
-                            className="bg-white border-0 shadow-sm focus:ring-0 h-12 text-black pr-10"
+                            className="bg-white border-0 shadow-sm focus:ring-0 h-14 text-black pr-10"
                             onClick={() => setEndOpen(true)}
                           />
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none calendar-icon">
                             <Image 
                               src={calendarIcon} 
                               alt="Calendar" 
@@ -255,7 +255,7 @@ export default function CalculatorSection() {
                   </div>
                 </div>
 
-                <Button className="bg-red-600 hover:bg-red-700 text-white w-full h-14 text-base font-medium">
+                <Button className="bg-red-600 hover:bg-red-700 text-white w-full h-16 text-base font-medium">
                   Calculate
                 </Button>
               </div>
@@ -278,13 +278,13 @@ export default function CalculatorSection() {
                       <span className="text-2xl font-bold">$100,000</span>
                       <span className="text-green-500 text-sm ml-2">+$2.30 (+1.3%)</span>
                     </div>
-                    <div className="w-[180px] h-[60px]">
+                    <div className="w-[180px] h-[60px] xs:w-[140px] xs:h-[40px] flex justify-end">
                       <Image 
                         src={chart} 
                         alt="Investment chart" 
                         width={180} 
                         height={60}
-                        className="w-full h-full object-left"
+                        className="w-full h-full"
                       />
                     </div>
                   </div>
@@ -293,7 +293,7 @@ export default function CalculatorSection() {
                 <div className="mb-8">
                   <h3 className="text-sm font-medium text-black mb-8">INVESTMENT BREAKDOWN</h3>
 
-                  <div className="space-y-7">
+                  <div className="space-y-7 xs:space-y-5">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Principal Amount</span>
                       <span className="font-bold text-black">100,000</span>
@@ -309,10 +309,10 @@ export default function CalculatorSection() {
                       <span className="font-bold text-black">{startDate ? format(startDate, "do MMMM yyyy") : "5th April 2025"}</span>
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-start">
                       <span className="text-gray-600">Maturity Date</span>
-                      <div className="flex items-center">
-                        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-sm mr-3">
+                      <div className="flex flex-col items-end">
+                        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-sm mb-1 self-end">
                           Matured
                         </span>
                         <span className="font-bold text-black">{endDate ? format(endDate, "do MMMM yyyy") : "5th April 2026"}</span>
