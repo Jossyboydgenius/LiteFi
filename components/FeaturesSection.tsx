@@ -7,7 +7,7 @@ import cash from "@/assets/svgs/cash.svg"
 import gift from "@/assets/svgs/gift.svg"
 import form from "@/assets/svgs/form.svg"
 import percent from "@/assets/svgs/percent.svg"
-import { motion } from "framer-motion"
+import { m } from "@/components/AnimationProvider"
 
 export default function FeaturesSection() {
   const features = [
@@ -43,7 +43,7 @@ export default function FeaturesSection() {
     },
   ]
 
-  // Animation variants
+  // Animation variants with reduced movement to prevent overflow
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -56,22 +56,22 @@ export default function FeaturesSection() {
   }
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { y: 15, opacity: 0 },
     show: { 
       y: 0, 
       opacity: 1,
       transition: {
         type: "spring",
-        stiffness: 80,
-        damping: 12
+        stiffness: 70,
+        damping: 15
       }
     }
   }
 
   return (
-    <section className="bg-gray-50 text-black py-20">
+    <section className="bg-gray-50 text-black py-20 overflow-hidden">
       <div className="container mx-auto px-6 md:px-12 lg:px-28">
-        <motion.div 
+        <m.div 
           className="text-center mb-16"
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -82,9 +82,9 @@ export default function FeaturesSection() {
           <p className="text-gray-600 max-w-3xl mx-auto">
             Get behind the wheel faster with loan terms that match your budget and lifestyle.
           </p>
-        </motion.div>
+        </m.div>
 
-        <motion.div 
+        <m.div 
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto"
           variants={containerVariants}
           initial="hidden"
@@ -92,31 +92,31 @@ export default function FeaturesSection() {
           viewport={{ once: true, margin: "-50px" }}
         >
           {features.map((feature, index) => (
-            <motion.div 
+            <m.div 
               key={index} 
               className="bg-white p-8 rounded-sm shadow-sm"
               variants={itemVariants}
               whileHover={{ 
-                y: -10,
-                boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                y: -8,
+                boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
                 transition: { duration: 0.3 }
               }}
             >
-              <motion.div 
+              <m.div 
                 className="bg-gray-100 w-20 h-20 circle-container mb-6 flex items-center justify-center"
                 whileHover={{ 
-                  scale: 1.1,
+                  scale: 1.08,
                   backgroundColor: "#f8f8f8",
                   transition: { duration: 0.2 }
                 }}
               >
                 {feature.icon}
-              </motion.div>
+              </m.div>
               <h3 className="font-bold text-lg mb-3">{feature.title}</h3>
               <p className="text-gray-600 text-sm">{feature.description}</p>
-            </motion.div>
+            </m.div>
           ))}
-        </motion.div>
+        </m.div>
       </div>
     </section>
   )
