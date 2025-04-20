@@ -196,6 +196,79 @@ input {
   }
 }
 
+/* Additional fixes for very small screens */
+@media (max-width: 420px) {
+  #calculator .bg-gray-50,
+  #calculator .bg-white {
+    padding: 1rem;
+  }
+  
+  #calculator .flex.gap-4 {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  #calculator .flex.gap-4 > div {
+    width: 100% !important;
+  }
+  
+  #calculator .flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  #calculator .flex.justify-between {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  #calculator .space-y-7 {
+    margin-bottom: 2rem;
+  }
+  
+  #calculator .text-2xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+  
+  #calculator .text-sm {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+}
+
+/* Override dropdown arrow positioning */
+[role="combobox"] {
+  position: relative;
+}
+
+[role="combobox"] svg {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Enhanced input field styling */
+#calculator input, 
+#calculator [role="combobox"] {
+  height: 56px !important; /* Taller input fields */
+}
+
+#calculator .calendar-icon {
+  top: 28px !important; /* Adjust calendar icon position for taller input fields */
+}
+
+/* Fix for very small screens - Investment Section */
+@media (max-width: 500px) {
+  .circle-container {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
 /* Calculator styles */
 #calculator .grid > div > div {
   height: 100%;
