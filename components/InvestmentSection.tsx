@@ -97,7 +97,7 @@ export default function InvestmentSection() {
             viewport={{ once: true, margin: "-100px" }}
           >
             {/* Stacked Images */}
-            <div className="relative h-[400px] sm:h-[350px] xs:h-[300px] overflow-hidden">
+            <div className="relative h-[480px] sm:h-[400px] xs:h-[300px] overflow-hidden">
               <m.div 
                 className="absolute right-0 bottom-20 w-[90%] z-10"
                 initial={{ opacity: 0, x: 40 }}
@@ -109,8 +109,8 @@ export default function InvestmentSection() {
                 <Image
                   src={invest1}
                   alt="Investment 1"
-                  width={400}
-                  height={300}
+                  width={500}
+                  height={400}
                   className="w-full h-full object-cover"
                 />
               </m.div>
