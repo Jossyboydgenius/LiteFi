@@ -1,3 +1,5 @@
+"use client"
+
 import Image from "next/image"
 import flash from "@/assets/svgs/flash.svg"
 import car from "@/assets/svgs/car.svg"
@@ -5,6 +7,7 @@ import cash from "@/assets/svgs/cash.svg"
 import gift from "@/assets/svgs/gift.svg"
 import form from "@/assets/svgs/form.svg"
 import percent from "@/assets/svgs/percent.svg"
+import { motion } from "framer-motion"
 
 export default function FeaturesSection() {
   const features = [
@@ -40,27 +43,80 @@ export default function FeaturesSection() {
     },
   ]
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    show: { 
+      y: 0, 
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 80,
+        damping: 12
+      }
+    }
+  }
+
   return (
     <section className="bg-gray-50 text-black py-20">
       <div className="container mx-auto px-6 md:px-12 lg:px-28">
-        <div className="text-center mb-16">
+        <motion.div 
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-50px" }}
+        >
           <h2 className="heading-secondary text-black mb-4">Auto Loans Made Simple, Fast, and Affordable</h2>
           <p className="text-gray-600 max-w-3xl mx-auto">
             Get behind the wheel faster with loan terms that match your budget and lifestyle.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-50px" }}
+        >
           {features.map((feature, index) => (
-            <div key={index} className="bg-white p-8 rounded-sm shadow-sm">
-              <div className="bg-gray-100 w-20 h-20 circle-container mb-6 flex items-center justify-center">
+            <motion.div 
+              key={index} 
+              className="bg-white p-8 rounded-sm shadow-sm"
+              variants={itemVariants}
+              whileHover={{ 
+                y: -10,
+                boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                transition: { duration: 0.3 }
+              }}
+            >
+              <motion.div 
+                className="bg-gray-100 w-20 h-20 circle-container mb-6 flex items-center justify-center"
+                whileHover={{ 
+                  scale: 1.1,
+                  backgroundColor: "#f8f8f8",
+                  transition: { duration: 0.2 }
+                }}
+              >
                 {feature.icon}
-              </div>
+              </motion.div>
               <h3 className="font-bold text-lg mb-3">{feature.title}</h3>
               <p className="text-gray-600 text-sm">{feature.description}</p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )
