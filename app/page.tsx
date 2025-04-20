@@ -8,19 +8,22 @@ import CalculatorSection from "@/components/CalculatorSection"
 import MoreSolutionsSection from "@/components/MoreSolutionsSection"
 import FinancialPartnerSection from "@/components/FinancialPartnerSection"
 import Footer from "@/components/Footer"
+import AnimationProvider from "@/components/AnimationProvider"
 
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col">
       <Navbar />
-      <HeroSection />
-      <AutoLoansSection />
-      <FeaturesSection />
-      <InvestmentSection />
-      <WhyInvestSection />
-      <CalculatorSection />
-      <MoreSolutionsSection />
-      <FinancialPartnerSection />
+      <AnimationProvider>
+        <HeroSection />
+        <AutoLoansSection />
+        <FeaturesSection />
+        <InvestmentSection />
+        <WhyInvestSection />
+        <CalculatorSection />
+        <MoreSolutionsSection />
+        <FinancialPartnerSection />
+      </AnimationProvider>
       <Footer />
     </main>
   )
