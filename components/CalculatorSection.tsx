@@ -7,6 +7,7 @@ import { ChevronDown } from "lucide-react"
 import Image from "next/image"
 import chart from "@/assets/images/chart.png"
 import calendarIcon from "@/assets/svgs/calendar.svg"
+import Logo from "@/assets/svgs/logo.svg"
 import {
   Select,
   SelectContent,
@@ -17,7 +18,7 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format, parse, isValid } from "date-fns"
-import { motion } from "framer-motion"
+import { m } from "@/components/AnimationProvider"
 
 export default function CalculatorSection() {
   const [investment, setInvestment] = useState(100000)
@@ -104,9 +105,9 @@ export default function CalculatorSection() {
   }
 
   return (
-    <section id="calculator" className="bg-white text-black section-padding">
+    <section id="calculator" className="bg-white text-black section-padding section-overflow-control">
       <div className="container mx-auto container-padding">
-        <motion.div 
+        <m.div 
           className="text-left mb-16"
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -118,12 +119,12 @@ export default function CalculatorSection() {
           <p className="text-gray-600">
             Estimate your returns and plan your investments with confidence—see how your money can grow over time.
           </p>
-        </motion.div>
+        </m.div>
 
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
             {/* Left Column - Calculator Input */}
-            <motion.div 
+            <m.div 
               className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]"
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -268,19 +269,19 @@ export default function CalculatorSection() {
                   </div>
                 </div>
 
-                <motion.div
+                <m.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   <Button className="bg-red-600 hover:bg-red-700 text-white w-full h-16 text-base font-medium">
                     Calculate
                   </Button>
-                </motion.div>
+                </m.div>
               </div>
-            </motion.div>
+            </m.div>
 
             {/* Right Column - Investment Results */}
-            <motion.div 
+            <m.div 
               className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]"
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -291,16 +292,22 @@ export default function CalculatorSection() {
                 <div className="flex flex-col mb-8">
                   <div className="flex items-start mb-6">
                     <div className="flex items-center">
-                      <div className="bg-black circle-container w-10 h-10 flex items-center justify-center mr-3">
-                        <span className="text-white font-bold text-xs">LiteFi</span>
+                      <div className="mr-3 flex-shrink-0">
+                        <Image 
+                          src={Logo}
+                          alt="LiteFi Logo" 
+                          width={40} 
+                          height={40}
+                          className="w-10 h-10"
+                        />
                       </div>
                       <span className="font-medium text-black">Litefi Investment</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <span className="text-2xl font-bold">$100,000</span>
-                      <span className="text-green-500 text-sm ml-2">+$2.30 (+1.3%)</span>
+                      <span className="text-2xl font-bold xs:text-xl">$100,000</span>
+                      <span className="text-green-500 text-sm ml-2 xs:text-xs">+$2.30 (+1.3%)</span>
                     </div>
                     <div className="w-[180px] h-[60px] xs:w-[140px] xs:h-[40px] flex justify-end">
                       <Image 
@@ -315,52 +322,55 @@ export default function CalculatorSection() {
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-sm font-medium text-black mb-8">INVESTMENT BREAKDOWN</h3>
+                  <h3 className="text-sm font-medium text-black mb-4">INVESTMENT BREAKDOWN</h3>
+                  
+                  {/* Add divider */}
+                  <div className="h-px bg-gray-200 w-full my-4"></div>
 
                   <div className="space-y-7 xs:space-y-5">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Principal Amount</span>
-                      <span className="font-bold text-black">100,000</span>
+                      <span className="text-gray-600 xs:text-sm">Principal Amount</span>
+                      <span className="font-bold text-black xs:text-base">100,000</span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Tenure</span>
-                      <span className="font-bold text-black">12 months</span>
+                      <span className="text-gray-600 xs:text-sm">Tenure</span>
+                      <span className="font-bold text-black xs:text-base">12 months</span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Start Date</span>
-                      <span className="font-bold text-black">{startDate ? format(startDate, "do MMMM yyyy") : "5th April 2025"}</span>
+                      <span className="text-gray-600 xs:text-sm">Start Date</span>
+                      <span className="font-bold text-black xs:text-base">{startDate ? format(startDate, "do MMMM yyyy") : "5th April 2025"}</span>
                     </div>
 
                     <div className="flex justify-between items-start">
-                      <span className="text-gray-600">Maturity Date</span>
+                      <span className="text-gray-600 xs:text-sm">Maturity Date</span>
                       <div className="flex flex-col items-end">
                         <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-sm mb-1 self-end">
                           Matured
                         </span>
-                        <span className="font-bold text-black">{endDate ? format(endDate, "do MMMM yyyy") : "5th April 2026"}</span>
+                        <span className="font-bold text-black xs:text-base">{endDate ? format(endDate, "do MMMM yyyy") : "5th April 2026"}</span>
                       </div>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Earning</span>
-                      <span className="font-bold text-black">75,000</span>
+                      <span className="text-gray-600 xs:text-sm">Earning</span>
+                      <span className="font-bold text-black xs:text-base">75,000</span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Withholding Tax</span>
-                      <span className="font-bold text-black">2,000</span>
+                      <span className="text-gray-600 xs:text-sm">Withholding Tax</span>
+                      <span className="font-bold text-black xs:text-base">2,000</span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Total Payouts</span>
-                      <span className="font-bold text-black">250,000</span>
+                      <span className="text-gray-600 xs:text-sm">Total Payouts</span>
+                      <span className="font-bold text-black xs:text-base">250,000</span>
                     </div>
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           </div>
         </div>
       </div>
