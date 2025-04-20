@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "LiteFi - Your Fast Track to Financial Freedom",
   description: "Get instant loans using your car as collateral and grow your wealth with high-yield investments.",
   icons: {
-    icon: "/logo.ico",
+    icon: "/logo.png",
   },
 }
 
