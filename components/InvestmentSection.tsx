@@ -19,9 +19,9 @@ export default function InvestmentSection() {
             </p>
 
             <div className="space-y-6 mb-8">
-              <div className="flex items-center">
-                <div className="bg-black circle-container w-10 h-10 md:w-12 md:h-12 flex items-center justify-center p-2 mr-4">
-                  <Settings className="h-4 w-4 md:h-5 md:w-5 text-white" />
+              <div className="flex items-start sm:items-center">
+                <div className="bg-black circle-container w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center p-2 mr-4 sm:mr-5 md:mr-6 flex-shrink-0">
+                  <Settings className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                 </div>
                 <div>
                   <h3 className="font-bold">Flex Investment:</h3>
@@ -31,9 +31,9 @@ export default function InvestmentSection() {
                 </div>
               </div>
 
-              <div className="flex items-center">
-                <div className="bg-black circle-container w-10 h-10 md:w-12 md:h-12 flex items-center justify-center p-2 mr-4">
-                  <Lock className="h-4 w-4 md:h-5 md:w-5 text-white" />
+              <div className="flex items-start sm:items-center">
+                <div className="bg-black circle-container w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center p-2 mr-4 sm:mr-5 md:mr-6 flex-shrink-0">
+                  <Lock className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                 </div>
                 <div>
                   <h3 className="font-bold">Goal Investment:</h3>
