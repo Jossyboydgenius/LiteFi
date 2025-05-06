@@ -3,9 +3,9 @@
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronDown } from "lucide-react"
+import { Download } from "lucide-react"
 import Image from "next/image"
-import chart from "@/assets/images/chart.png"
+import chart from "@/assets/svgs/chart.svg"
 import calendarIcon from "@/assets/svgs/calendar.svg"
 import Logo from "@/assets/svgs/logo.svg"
 import {
@@ -19,6 +19,12 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format, parse, isValid } from "date-fns"
 import { m } from "@/components/AnimationProvider"
+import { toPng } from 'html-to-image'
+
+// Format number with commas as thousand separators
+const formatNumberWithCommas = (num: number) => {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
 
 export default function CalculatorSection() {
   const [investment, setInvestment] = useState(100000)
@@ -30,6 +36,17 @@ export default function CalculatorSection() {
   const [endDateInput, setEndDateInput] = useState("")
   const [startOpen, setStartOpen] = useState(false)
   const [endOpen, setEndOpen] = useState(false)
+  
+  // Reference for the investment breakdown section
+  const breakdownRef = useRef<HTMLDivElement>(null)
+  
+  // Currency flag emoji mapping
+  const currencyFlags = {
+    NGN: "🇳🇬", // Nigeria
+    GBP: "🇬🇧", // United Kingdom
+    USD: "🇺🇸", // United States
+    EUR: "🇪🇺", // European Union
+  }
 
   // Format the input as dd/mm/yyyy while typing
   const formatDateInput = (value: string): string => {
@@ -103,6 +120,32 @@ export default function CalculatorSection() {
     }
     setEndOpen(false) // Close the popover after selection
   }
+  
+  // Format investment input with thousand separators
+  const handleInvestmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Remove non-numeric characters and parse as number
+    const value = e.target.value.replace(/[^\d]/g, '')
+    if (value) {
+      setInvestment(parseInt(value, 10))
+    } else {
+      setInvestment(0)
+    }
+  }
+  
+  // Download investment breakdown as image
+  const downloadBreakdownAsImage = async () => {
+    if (breakdownRef.current) {
+      try {
+        const dataUrl = await toPng(breakdownRef.current, { quality: 1.0 })
+        const link = document.createElement('a')
+        link.download = 'litefi-investment-breakdown.png'
+        link.href = dataUrl
+        link.click()
+      } catch (error) {
+        console.error('Error generating image:', error)
+      }
+    }
+  }
 
   return (
     <section id="calculator" className="bg-white text-black section-padding section-overflow-control">
@@ -142,13 +185,36 @@ export default function CalculatorSection() {
                     <div className="w-1/3 xs:w-full">
                       <Select value={currency} onValueChange={setCurrency}>
                         <SelectTrigger className="bg-white border-0 shadow-sm h-14 text-black flex justify-between items-center">
-                          <SelectValue placeholder="EUR" />
+                          <div className="flex items-center">
+                            <span className="mr-2 text-base">{currencyFlags[currency as keyof typeof currencyFlags]}</span>
+                            <span>{currency}</span>
+                          </div>
                         </SelectTrigger>
                         <SelectContent className="bg-white">
-                          <SelectItem value="NGN" className="text-black data-[highlighted]:text-black data-[highlighted]:bg-zinc-100">Naira</SelectItem>
-                          <SelectItem value="GBP" className="text-black data-[highlighted]:text-black data-[highlighted]:bg-zinc-100">GBP</SelectItem>
-                          <SelectItem value="USD" className="text-black data-[highlighted]:text-black data-[highlighted]:bg-zinc-100">USD</SelectItem>
-                          <SelectItem value="EUR" className="text-black data-[highlighted]:text-black data-[highlighted]:bg-zinc-100">EUR</SelectItem>
+                          <SelectItem value="NGN" className="text-black data-[highlighted]:text-black data-[highlighted]:bg-zinc-100">
+                            <div className="flex items-center">
+                              <span className="mr-2 text-base">🇳🇬</span>
+                              Naira
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="GBP" className="text-black data-[highlighted]:text-black data-[highlighted]:bg-zinc-100">
+                            <div className="flex items-center">
+                              <span className="mr-2 text-base">🇬🇧</span>
+                              GBP
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="USD" className="text-black data-[highlighted]:text-black data-[highlighted]:bg-zinc-100">
+                            <div className="flex items-center">
+                              <span className="mr-2 text-base">🇺🇸</span>
+                              USD
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="EUR" className="text-black data-[highlighted]:text-black data-[highlighted]:bg-zinc-100">
+                            <div className="flex items-center">
+                              <span className="mr-2 text-base">🇪🇺</span>
+                              EUR
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -156,8 +222,8 @@ export default function CalculatorSection() {
                       <Input
                         type="text"
                         placeholder="Type in amount"
-                        value={investment}
-                        onChange={(e) => setInvestment(Number(e.target.value))}
+                        value={formatNumberWithCommas(investment)}
+                        onChange={handleInvestmentChange}
                         className="bg-white border-0 shadow-sm focus:ring-0 text-right xs:text-left h-14 text-black"
                       />
                     </div>
@@ -306,22 +372,22 @@ export default function CalculatorSection() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <span className="text-2xl font-bold xs:text-xl">$100,000</span>
+                      <span className="text-2xl font-bold xs:text-xl">${formatNumberWithCommas(100000)}</span>
                       <span className="text-green-500 text-sm ml-2 xs:text-xs">+$2.30 (+1.3%)</span>
                     </div>
-                    <div className="w-[180px] h-[60px] xs:w-[140px] xs:h-[40px] flex justify-end">
+                    <div className="flex justify-end max-w-[180px] h-[60px] max-[375px]:max-w-[140px] max-[375px]:h-[40px]">
                       <Image 
                         src={chart} 
                         alt="Investment chart" 
                         width={180} 
                         height={60}
-                        className="w-full h-full"
+                        className="w-full h-full object-contain"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="mb-8">
+                <div className="mb-8" ref={breakdownRef}>
                   <h3 className="text-sm font-medium text-black mb-4">INVESTMENT BREAKDOWN</h3>
                   
                   {/* Add divider */}
@@ -330,7 +396,7 @@ export default function CalculatorSection() {
                   <div className="space-y-7 xs:space-y-5">
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Principal Amount</span>
-                      <span className="font-bold text-black xs:text-base">100,000</span>
+                      <span className="font-bold text-black xs:text-base">{formatNumberWithCommas(100000)}</span>
                     </div>
 
                     <div className="flex justify-between">
@@ -343,10 +409,10 @@ export default function CalculatorSection() {
                       <span className="font-bold text-black xs:text-base">{startDate ? format(startDate, "do MMMM yyyy") : "5th April 2025"}</span>
                     </div>
 
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Maturity Date</span>
-                      <div className="flex flex-col items-end">
-                        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-sm mb-1 self-end">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-sm">
                           Matured
                         </span>
                         <span className="font-bold text-black xs:text-base">{endDate ? format(endDate, "do MMMM yyyy") : "5th April 2026"}</span>
@@ -355,20 +421,30 @@ export default function CalculatorSection() {
 
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Earning</span>
-                      <span className="font-bold text-black xs:text-base">75,000</span>
+                      <span className="font-bold text-black xs:text-base">{formatNumberWithCommas(75000)}</span>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Withholding Tax</span>
-                      <span className="font-bold text-black xs:text-base">2,000</span>
+                      <span className="font-bold text-black xs:text-base">{formatNumberWithCommas(2000)}</span>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Total Payouts</span>
-                      <span className="font-bold text-black xs:text-base">250,000</span>
+                      <span className="font-bold text-black xs:text-base">{formatNumberWithCommas(250000)}</span>
                     </div>
                   </div>
                 </div>
+                
+                {/* Download Button */}
+                <Button 
+                  variant="outline" 
+                  className="w-full flex items-center justify-center gap-2 mt-6 border-gray-200 text-gray-700 hover:bg-gray-50"
+                  onClick={downloadBreakdownAsImage}
+                >
+                  <Download className="h-4 w-4" />
+                  Download Investment Breakdown
+                </Button>
               </div>
             </m.div>
           </div>
