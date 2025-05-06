@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link"; // Add import for Link
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -23,7 +24,7 @@ export default function MobileSidebar({
       {/* Backdrop blur overlay when mobile menu is open */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-md z-50" // Ensure backdrop blur is applied
+          className="fixed inset-0 bg-black/70 backdrop-blur-md z-50"
           onClick={onClose}
         />
       )}
@@ -96,15 +97,19 @@ export default function MobileSidebar({
 
           {/* Auth buttons - positioned at the bottom with margin-top: auto */}
           <div className="mt-auto p-4 space-y-3 mb-8 bg-black"> {/* mt-auto pushes this div to the bottom */} 
-            <Button className="bg-red-600 hover:bg-red-700 text-white w-full">
-              Sign Up
-            </Button>
-            <Button
-              variant="outline"
-              className="text-white border-gray-700 hover:bg-white hover:text-black bg-black w-full"
-            >
-              Log In
-            </Button>
+            <Link href="https://litefiwebapp.vercel.app/sign-up" className="w-full">
+              <Button className="bg-red-600 hover:bg-red-700 text-white w-full">
+                Sign Up
+              </Button>
+            </Link>
+            <Link href="https://litefiwebapp.vercel.app/login" className="w-full">
+              <Button
+                variant="outline"
+                className="text-white border-gray-700 hover:bg-white hover:text-black bg-black w-full"
+              >
+                Log In
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
