@@ -218,6 +218,18 @@ input {
     gap: 1rem;
   }
   
+  #calculator .flex.items-center.justify-between:not(.investment-data-row) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  #calculator .investment-data-row {
+    flex-direction: row !important; /* Force row direction */
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  
   #calculator .flex.justify-between {
     flex-wrap: wrap;
     gap: 0.5rem;
