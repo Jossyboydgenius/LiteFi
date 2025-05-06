@@ -18,7 +18,6 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format, parse, isValid } from "date-fns"
-import { m } from "@/components/AnimationProvider"
 import { toPng } from 'html-to-image'
 
 // Format number with commas as thousand separators
@@ -136,7 +135,15 @@ export default function CalculatorSection() {
   const downloadBreakdownAsImage = async () => {
     if (breakdownRef.current) {
       try {
-        const dataUrl = await toPng(breakdownRef.current, { quality: 1.0 })
+        const dataUrl = await toPng(breakdownRef.current, { 
+          quality: 1.0,
+          // Add these options to handle CORS issues
+          skipFonts: true,
+          fontEmbedCSS: '',
+          imagePlaceholder: undefined,
+          // Increase canvas size if needed
+          pixelRatio: 2
+        })
         const link = document.createElement('a')
         link.download = 'litefi-investment-breakdown.png'
         link.href = dataUrl
@@ -150,30 +157,18 @@ export default function CalculatorSection() {
   return (
     <section id="calculator" className="bg-white text-black section-padding section-overflow-control">
       <div className="container mx-auto container-padding">
-        <m.div 
-          className="text-left mb-16"
-          initial={{ opacity: 0, y: -20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true, margin: "-100px" }}
-        >
+        <div className="text-left mb-16">
           <div className="section-title-red mb-4">PLAN YOUR INVESTMENT</div>
           <h2 className="heading-secondary text-black mb-4">Calculate Your Future Returns</h2>
           <p className="text-gray-600">
             Estimate your returns and plan your investments with confidence—see how your money can grow over time.
           </p>
-        </m.div>
+        </div>
 
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
             {/* Left Column - Calculator Input */}
-            <m.div 
-              className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]"
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              viewport={{ once: true, margin: "-100px" }}
-            >
+            <div className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
               <div className="bg-gray-50 p-5 sm:p-8 md:p-10 lg:p-12 rounded-sm h-full">
                 <p className="text-sm text-gray-500 italic mb-10">
                   This is a simulation tool and results shown are estimates and do not guarantee actual returns.
@@ -335,26 +330,17 @@ export default function CalculatorSection() {
                   </div>
                 </div>
 
-                <m.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
+                <div>
                   <Button className="bg-red-600 hover:bg-red-700 text-white w-full h-16 text-base font-medium">
                     Calculate
                   </Button>
-                </m.div>
+                </div>
               </div>
-            </m.div>
+            </div>
 
             {/* Right Column - Investment Results */}
-            <m.div 
-              className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]"
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-              viewport={{ once: true, margin: "-100px" }}
-            >
-              <div className="bg-white p-5 sm:p-10 rounded-sm h-full">
+            <div className="w-full sm:max-w-full md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
+              <div className="bg-white p-5 sm:p-10 rounded-sm h-full" ref={breakdownRef}>
                 <div className="flex flex-col mb-8">
                   <div className="flex items-start mb-6">
                     <div className="flex items-center">
@@ -370,24 +356,26 @@ export default function CalculatorSection() {
                       <span className="font-medium text-black">Litefi Investment</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="text-2xl font-bold xs:text-xl">${formatNumberWithCommas(100000)}</span>
-                      <span className="text-green-500 text-sm ml-2 xs:text-xs">+$2.30 (+1.3%)</span>
+                  <div className="flex items-center justify-between investment-data-row">
+                    <div className="flex-1 mr-4">
+                      <div className="flex flex-col">
+                        <span className="text-2xl font-bold xs:text-xl">${formatNumberWithCommas(100000)}</span>
+                        <span className="text-green-500 text-sm xs:text-xs">+$2.30 (+1.3%)</span>
+                      </div>
                     </div>
-                    <div className="flex justify-end max-w-[180px] h-[60px] max-[375px]:max-w-[140px] max-[375px]:h-[40px]">
+                    <div className="flex justify-end flex-shrink-0" style={{ width: '120px', height: '60px' }}>
                       <Image 
                         src={chart} 
                         alt="Investment chart" 
                         width={180} 
                         height={60}
-                        className="w-full h-full object-contain"
+                        className="object-contain"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="mb-8" ref={breakdownRef}>
+                <div className="mb-8">
                   <h3 className="text-sm font-medium text-black mb-4">INVESTMENT BREAKDOWN</h3>
                   
                   {/* Add divider */}
@@ -412,7 +400,7 @@ export default function CalculatorSection() {
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Maturity Date</span>
                       <div className="flex items-center gap-2">
-                        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-sm">
+                        <span className="bg-green-50 text-green-600 text-xs px-2 py-1 rounded-sm">
                           Matured
                         </span>
                         <span className="font-bold text-black xs:text-base">{endDate ? format(endDate, "do MMMM yyyy") : "5th April 2026"}</span>
@@ -446,7 +434,7 @@ export default function CalculatorSection() {
                   Download Investment Breakdown
                 </Button>
               </div>
-            </m.div>
+            </div>
           </div>
         </div>
       </div>
