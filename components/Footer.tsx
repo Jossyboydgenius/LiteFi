@@ -49,7 +49,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                  Travel Loan (POF)
+                  Travel Loan
                 </Link>
               </li>
             </ul>
