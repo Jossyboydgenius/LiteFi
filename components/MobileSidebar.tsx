@@ -96,16 +96,16 @@ export default function MobileSidebar({
           </div>
 
           {/* Auth buttons - positioned at the bottom with margin-top: auto */}
-          <div className="mt-auto p-4 space-y-3 mb-8 bg-black"> {/* mt-auto pushes this div to the bottom */} 
-            <Link href="https://litefiwebapp.vercel.app/sign-up" className="w-full">
-              <Button className="bg-red-600 hover:bg-red-700 text-white w-full">
+          <div className="mt-auto p-4 space-y-4 mb-8 bg-black"> {/* Increased space-y from space-y-3 to space-y-4 */} 
+            <Link href="https://litefiwebapp.vercel.app/sign-up" className="w-full block">
+              <Button className="bg-red-600 hover:bg-red-700 text-white w-full h-12">
                 Sign Up
               </Button>
             </Link>
-            <Link href="https://litefiwebapp.vercel.app/login" className="w-full">
+            <Link href="https://litefiwebapp.vercel.app/login" className="w-full block">
               <Button
                 variant="outline"
-                className="text-white border-gray-700 hover:bg-white hover:text-black bg-black w-full"
+                className="text-white border-gray-700 hover:bg-white hover:text-black bg-black w-full h-12"
               >
                 Log In
               </Button>
