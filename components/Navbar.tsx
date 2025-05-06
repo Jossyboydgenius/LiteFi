@@ -123,13 +123,17 @@ export default function Navbar() {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center space-x-4">
-          <Button className="bg-red-600 hover:bg-red-700 text-white no-radius">Sign Up</Button>
-          <Button
-            variant="outline"
-            className="text-white border border-gray-700 hover:bg-white hover:text-black bg-black no-radius"
-          >
-            Log In
-          </Button>
+          <Link href="https://litefiwebapp.vercel.app/sign-up">
+            <Button className="bg-red-600 hover:bg-red-700 text-white no-radius">Sign Up</Button>
+          </Link>
+          <Link href="https://litefiwebapp.vercel.app/login">
+            <Button
+              variant="outline"
+              className="text-white border border-gray-700 hover:bg-white hover:text-black bg-black no-radius"
+            >
+              Log In
+            </Button>
+          </Link>
         </div>
 
         {/* Mobile Menu Button */}

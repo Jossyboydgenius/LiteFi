@@ -23,6 +23,12 @@ const config = {
         'xs': {'max': '420px'},
       },
       colors: {
+        red: {
+          600: "#D81324",
+        },
+        green: {
+          600: "#089600",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
