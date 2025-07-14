@@ -25,7 +25,7 @@ export default function AutoLoansSection() {
               the potential for swift approval.
             </p>
             <div>
-              <Link href="https://litefiwebapp.vercel.app/sign-up">
+              <Link href="/signup">
                 <Button 
                   className="bg-red-600 hover:bg-red-700 text-white no-radius px-8 py-3 h-auto text-base font-medium w-48">
                   Get Started

@@ -34,7 +34,7 @@ export default function HeroSection() {
           </p>
           
           <div className="mb-8">
-            <Link href="https://litefiwebapp.vercel.app/sign-up">
+            <Link href="/signup">
               <Button 
                 className="bg-red-600 hover:bg-red-700 text-white no-radius px-8 py-3 h-auto text-base font-medium w-48">
                 Get Started
