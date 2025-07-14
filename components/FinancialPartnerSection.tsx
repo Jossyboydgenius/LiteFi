@@ -20,12 +20,11 @@ export default function FinancialPartnerSection() {
               Join thousands of Nigerians who trust LiteFi for a convenient and reliable financial experience.
             </p>
             <div>
-              <Link href="https://litefiwebapp.vercel.app/sign-up">
-                <Button 
-                  className="bg-red-600 hover:bg-red-700 text-white no-radius px-8 py-3 h-auto text-base font-medium w-48">
-                  Get Started
-                </Button>
-              </Link>
+              <Button 
+                className="bg-gray-600 cursor-not-allowed text-white no-radius px-8 py-3 h-auto text-base font-medium w-48"
+                disabled>
+                Coming Soon
+              </Button>
             </div>
           </div>
         </div>

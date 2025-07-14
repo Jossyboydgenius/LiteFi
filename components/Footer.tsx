@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Facebook, Twitter, Youtube, Linkedin } from "lucide-react"
+import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react"
+import { TikTokIcon } from "@/components/ui/TikTokIcon"
 import { MapPin, Mail, Phone, Clock } from "lucide-react"
 
 export default function Footer() {
@@ -83,17 +84,20 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-lg mb-4">LiteFi</h3>
             <div className="flex space-x-4 mb-4">
-              <Link href="#" className="circle-container bg-zinc-900 w-10 h-10 flex items-center justify-center hover:bg-zinc-800 transition-colors">
+              <Link href="https://www.facebook.com/litefing" target="_blank" rel="noopener noreferrer" className="circle-container bg-zinc-900 w-10 h-10 flex items-center justify-center hover:bg-zinc-800 transition-colors">
                 <Facebook className="h-5 w-5 text-white" />
               </Link>
-              <Link href="#" className="circle-container bg-zinc-900 w-10 h-10 flex items-center justify-center hover:bg-zinc-800 transition-colors">
+              <Link href="https://x.com/LiteFiNG" target="_blank" rel="noopener noreferrer" className="circle-container bg-zinc-900 w-10 h-10 flex items-center justify-center hover:bg-zinc-800 transition-colors">
                 <Twitter className="h-5 w-5 text-white" />
               </Link>
-              <Link href="#" className="circle-container bg-zinc-900 w-10 h-10 flex items-center justify-center hover:bg-zinc-800 transition-colors">
-                <Youtube className="h-5 w-5 text-white" />
-              </Link>
-              <Link href="#" className="circle-container bg-zinc-900 w-10 h-10 flex items-center justify-center hover:bg-zinc-800 transition-colors">
+              <Link href="https://www.linkedin.com/company/litefi-limited/" target="_blank" rel="noopener noreferrer" className="circle-container bg-zinc-900 w-10 h-10 flex items-center justify-center hover:bg-zinc-800 transition-colors">
                 <Linkedin className="h-5 w-5 text-white" />
+              </Link>
+              <Link href="https://www.instagram.com/litefing/" target="_blank" rel="noopener noreferrer" className="circle-container bg-zinc-900 w-10 h-10 flex items-center justify-center hover:bg-zinc-800 transition-colors">
+                <Instagram className="h-5 w-5 text-white" />
+              </Link>
+              <Link href="https://www.tiktok.com/@litefing" target="_blank" rel="noopener noreferrer" className="circle-container bg-zinc-900 w-10 h-10 flex items-center justify-center hover:bg-zinc-800 transition-colors">
+                <TikTokIcon className="h-5 w-5 text-white" />
               </Link>
             </div>
           </div>
