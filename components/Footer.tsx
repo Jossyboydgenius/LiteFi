@@ -29,29 +29,29 @@ export default function Footer() {
             <h3 className="font-semibold text-lg mb-4">Products</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                  LiteFi Investment
-                </Link>
+                <span className="text-gray-500 text-sm opacity-60 cursor-not-allowed flex items-center">
+                  LiteFi Investment <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded">Coming Soon</span>
+                </span>
               </li>
               <li>
-                <Link href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
+                <Link href="/dashboard" className="text-gray-400 hover:text-white text-sm transition-colors">
                   Salary Earner Loan
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                  Working Capital Loan
-                </Link>
+                <span className="text-gray-500 text-sm opacity-60 cursor-not-allowed flex items-center">
+                  Working Capital Loan <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded">Coming Soon</span>
+                </span>
               </li>
               <li>
-                <Link href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                  Auto Loan
-                </Link>
+                <span className="text-gray-500 text-sm opacity-60 cursor-not-allowed flex items-center">
+                  Auto Loan <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded">Coming Soon</span>
+                </span>
               </li>
               <li>
-                <Link href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                  Travel Loan
-                </Link>
+                <span className="text-gray-500 text-sm opacity-60 cursor-not-allowed flex items-center">
+                  Travel Loan <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded">Coming Soon</span>
+                </span>
               </li>
             </ul>
           </div>
