@@ -33,6 +33,8 @@ interface LoanApplication {
   reviewedBy?: string;
   notes?: string;
   documents: string[];
+  approvedAmount?: number;
+  approvedTenure?: string;
 }
 
 const generateId = () => nanoid(10);
@@ -51,7 +53,9 @@ const mockApplications: LoanApplication[] = [
     monthlyIncome: 150000,
     status: 'pending',
     submittedAt: '2024-01-15T10:30:00Z',
-    documents: ['id_card.pdf', 'salary_slip.pdf', 'bank_statement.pdf']
+    documents: ['id_card.pdf', 'salary_slip.pdf', 'bank_statement.pdf'],
+    approvedAmount: 400000,
+    approvedTenure: '12 months'
   },
   {
     id: '2',
@@ -70,7 +74,9 @@ const mockApplications: LoanApplication[] = [
     reviewedAt: '2024-01-15T09:45:00Z',
     reviewedBy: 'Admin User',
     notes: 'Good credit history and stable income.',
-    documents: ['id_card.pdf', 'driver_license.pdf', 'insurance.pdf', 'vehicle_inspection.pdf']
+    documents: ['id_card.pdf', 'driver_license.pdf', 'insurance.pdf', 'vehicle_inspection.pdf'],
+    approvedAmount: 2000000,
+    approvedTenure: '24 months'
   },
   {
     id: '3',
@@ -568,6 +574,14 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
         <div>
           <Label className="text-sm font-medium text-gray-700">Status</Label>
           <p className="capitalize text-black">{application.status}</p>
+        </div>
+        <div>
+          <Label className="text-sm font-medium text-gray-700">Approved Amount</Label>
+          <p className="text-black">{application.approvedAmount ? formatCurrency(application.approvedAmount) : '-'}</p>
+        </div>
+        <div>
+          <Label className="text-sm font-medium text-gray-700">Approved Tenure</Label>
+          <p className="text-black">{application.approvedTenure ? application.approvedTenure : '-'}</p>
         </div>
       </div>
 
