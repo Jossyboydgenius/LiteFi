@@ -10,97 +10,312 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Upload, User, Camera } from "lucide-react";
 import logoImage from "@/public/assets/images/logo.png";
-import { formatAmount, parseAmount } from "@/lib/formatters";
+import { formatAmount } from "@/lib/formatters";
 
-// Define loan form configurations
+// Define loan form configurations according to the workflow
 const loanConfigs = {
   "salary-cash": {
     title: "Salary Earner Cash Loan Application",
     description: "Quick cash loans for salary earners with flexible repayment terms",
-    fields: [
-      { name: "employerName", label: "Employer Name", type: "text", required: true },
-      { name: "monthlyIncome", label: "Monthly Net Income (₦)", type: "number", required: true },
-      { name: "employmentDuration", label: "Employment Duration", type: "select", options: ["0-6 months", "6-12 months", "1-2 years", "2-5 years", "5+ years"], required: true },
-      { name: "loanAmount", label: "Requested Loan Amount (₦)", type: "number", required: true },
-      { name: "loanPurpose", label: "Loan Purpose", type: "textarea", required: true },
-      { name: "repaymentPeriod", label: "Preferred Repayment Period", type: "select", options: ["3 months", "6 months", "12 months", "18 months", "24 months"], required: true }
-    ],
-    documents: [
-      "Valid ID Card",
-      "Last 3 months salary slips", 
-      "Bank statements (6 months)",
-      "Employment letter",
-      "Passport photograph"
+    sections: [
+      {
+        title: "Loan Amount",
+        fields: [
+          { name: "loanAmount", label: "Loan Amount (₦)", type: "number", required: true },
+          { name: "tenure", label: "Tenure", type: "select", options: ["3 months", "6 months", "12 months", "18 months", "24 months"], required: true }
+        ]
+      },
+      {
+        title: "Personal Information",
+        fields: [
+          { name: "selfie", label: "Selfie", type: "file", accept: "image/*", required: true },
+          { name: "firstName", label: "First Name", type: "text", required: true },
+          { name: "lastName", label: "Last Name", type: "text", required: true },
+          { name: "middleName", label: "Middle Name", type: "text", required: false },
+          { name: "phoneNumber", label: "Phone Number", type: "tel", required: true },
+          { name: "email", label: "Email", type: "email", required: true },
+          { name: "bvn", label: "BVN", type: "text", required: true },
+          { name: "nin", label: "NIN", type: "text", required: true },
+          { name: "addressNo", label: "Address No", type: "text", required: true },
+          { name: "streetName", label: "Street Name", type: "text", required: true },
+          { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
+          { name: "state", label: "State", type: "text", required: true },
+          { name: "localGovernment", label: "Local Government", type: "text", required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
+          { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
+          { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
+        ]
+      },
+      {
+        title: "Employment Information",
+        fields: [
+          { name: "employerName", label: "Employer Name", type: "text", required: true },
+          { name: "employerAddress", label: "Employer Address", type: "textarea", required: true },
+          { name: "jobTitle", label: "Title / Position", type: "text", required: true },
+          { name: "workEmail", label: "Work Email", type: "email", required: true },
+          { name: "employmentStartDate", label: "Employment Start Date", type: "date", required: true },
+          { name: "salaryPaymentDate", label: "Salary Payment Date", type: "select", options: ["1st", "15th", "Last day of month", "Other"], required: true },
+          { name: "netSalary", label: "Net Salary (₦)", type: "number", required: true }
+        ]
+      },
+      {
+        title: "Next of Kin",
+        fields: [
+          { name: "kinFirstName", label: "First Name", type: "text", required: true },
+          { name: "kinLastName", label: "Last Name", type: "text", required: true },
+          { name: "kinMiddleName", label: "Middle Name", type: "text", required: false },
+          { name: "kinRelationship", label: "Relationship", type: "select", options: ["Spouse", "Parent", "Sibling", "Child", "Friend", "Other"], required: true },
+          { name: "kinPhoneNumber", label: "Phone Number", type: "tel", required: true },
+          { name: "kinEmail", label: "Email Address", type: "email", required: true }
+        ]
+      },
+      {
+        title: "Salary Bank Account Details",
+        fields: [
+          { name: "bankName", label: "Bank Name", type: "text", required: true },
+          { name: "accountName", label: "Account Name", type: "text", required: true },
+          { name: "accountNumber", label: "Account Number", type: "text", required: true }
+        ]
+      },
+      {
+        title: "Documents",
+        documents: [
+          "Valid Government ID",
+          "Utility Bill",
+          "Work ID"
+        ]
+      }
     ]
   },
   "business-cash": {
-    title: "Business / Corporate Cash Loan Application", 
+    title: "Business / Corporate Cash Loan Application",
     description: "Working capital loans for businesses and corporations",
-    fields: [
-      { name: "businessName", label: "Business/Company Name", type: "text", required: true },
-      { name: "businessType", label: "Business Type", type: "select", options: ["Sole Proprietorship", "Partnership", "Limited Liability Company", "Corporation", "Other"], required: true },
-      { name: "registrationNumber", label: "Business Registration Number", type: "text", required: true },
-      { name: "monthlyRevenue", label: "Average Monthly Revenue (₦)", type: "number", required: true },
-      { name: "businessAge", label: "Years in Business", type: "select", options: ["0-1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
-      { name: "loanAmount", label: "Requested Loan Amount (₦)", type: "number", required: true },
-      { name: "loanPurpose", label: "Loan Purpose", type: "textarea", required: true },
-      { name: "repaymentPeriod", label: "Preferred Repayment Period", type: "select", options: ["6 months", "12 months", "18 months", "24 months", "36 months"], required: true }
-    ],
-    documents: [
-      "CAC Certificate", 
-      "Tax Identification Number (TIN)",
-      "Bank statements (12 months)",
-      "Financial statements",
-      "Business permit/license",
-      "Directors' ID cards"
+    sections: [
+      {
+        title: "Loan Amount",
+        fields: [
+          { name: "loanAmount", label: "Loan Amount (₦)", type: "number", required: true },
+          { name: "tenure", label: "Tenure", type: "select", options: ["6 months", "12 months", "18 months", "24 months", "36 months"], required: true }
+        ]
+      },
+      {
+        title: "Personal Information",
+        fields: [
+          { name: "selfie", label: "Selfie", type: "file", accept: "image/*", required: true },
+          { name: "firstName", label: "First Name", type: "text", required: true },
+          { name: "lastName", label: "Last Name", type: "text", required: true },
+          { name: "middleName", label: "Middle Name", type: "text", required: false },
+          { name: "phoneNumber", label: "Phone Number", type: "tel", required: true },
+          { name: "email", label: "Email", type: "email", required: true },
+          { name: "bvn", label: "BVN", type: "text", required: true },
+          { name: "nin", label: "NIN", type: "text", required: true },
+          { name: "addressNo", label: "Address No", type: "text", required: true },
+          { name: "streetName", label: "Street Name", type: "text", required: true },
+          { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
+          { name: "state", label: "State", type: "text", required: true },
+          { name: "localGovernment", label: "Local Government", type: "text", required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
+          { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
+          { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
+        ]
+      },
+      {
+        title: "Business Information",
+        fields: [
+          { name: "businessName", label: "Business Name", type: "text", required: true },
+          { name: "businessDescription", label: "Description of Business", type: "textarea", required: true },
+          { name: "industry", label: "Industry", type: "text", required: true },
+          { name: "businessAddress", label: "Business Address", type: "textarea", required: true },
+          { name: "workEmail", label: "Work Email", type: "email", required: true }
+        ]
+      },
+      {
+        title: "Next of Kin",
+        fields: [
+          { name: "kinFirstName", label: "First Name", type: "text", required: true },
+          { name: "kinLastName", label: "Last Name", type: "text", required: true },
+          { name: "kinMiddleName", label: "Middle Name", type: "text", required: false },
+          { name: "kinRelationship", label: "Relationship", type: "select", options: ["Spouse", "Parent", "Sibling", "Child", "Friend", "Other"], required: true },
+          { name: "kinPhoneNumber", label: "Phone Number", type: "tel", required: true },
+          { name: "kinEmail", label: "Email Address", type: "email", required: true }
+        ]
+      },
+      {
+        title: "Salary Bank Account Details",
+        fields: [
+          { name: "bankName", label: "Bank Name", type: "text", required: true },
+          { name: "accountName", label: "Account Name", type: "text", required: true },
+          { name: "accountNumber", label: "Account Number", type: "text", required: true }
+        ]
+      },
+      {
+        title: "Documents",
+        documents: [
+          "Valid Government ID",
+          "Utility Bill",
+          "Work ID",
+          "CAC Certificate",
+          "CAC 2 and 7 or Memart or CAC Application Status"
+        ]
+      }
     ]
   },
   "salary-car": {
     title: "Salary Earner Car Loan Application",
-    description: "Car loans for salary earners with your vehicle as collateral", 
-    fields: [
-      { name: "employerName", label: "Employer Name", type: "text", required: true },
-      { name: "monthlyIncome", label: "Monthly Net Income (₦)", type: "number", required: true },
-      { name: "vehicleMake", label: "Vehicle Make", type: "text", required: true },
-      { name: "vehicleModel", label: "Vehicle Model", type: "text", required: true },
-      { name: "vehicleYear", label: "Vehicle Year", type: "select", options: Array.from({length: 20}, (_, i) => (2024 - i).toString()), required: true },
-      { name: "vehicleValue", label: "Estimated Vehicle Value (₦)", type: "number", required: true },
-      { name: "loanAmount", label: "Requested Loan Amount (₦)", type: "number", required: true },
-      { name: "repaymentPeriod", label: "Preferred Repayment Period", type: "select", options: ["12 months", "18 months", "24 months", "36 months", "48 months"], required: true }
-    ],
-    documents: [
-      "Vehicle documents (Registration, Insurance)",
-      "Valid ID Card",
-      "Last 3 months salary slips",
-      "Bank statements (6 months)", 
-      "Employment letter",
-      "Vehicle valuation report"
+    description: "Car loans for salary earners with your vehicle as collateral",
+    sections: [
+      {
+        title: "Vehicle Details",
+        fields: [
+          { name: "vehicleMake", label: "Make", type: "text", required: true },
+          { name: "vehicleModel", label: "Model", type: "text", required: true },
+          { name: "vehicleYear", label: "Year of Vehicle", type: "select", options: Array.from({length: 20}, (_, i) => (2024 - i).toString()), required: true },
+          { name: "vehicleAmount", label: "Vehicle Amount (₦)", type: "number", required: true },
+          { name: "tenure", label: "Tenure", type: "select", options: ["12 months", "18 months", "24 months", "36 months", "48 months"], required: true }
+        ]
+      },
+      {
+        title: "Personal Information",
+        fields: [
+          { name: "selfie", label: "Selfie", type: "file", accept: "image/*", required: true },
+          { name: "firstName", label: "First Name", type: "text", required: true },
+          { name: "lastName", label: "Last Name", type: "text", required: true },
+          { name: "middleName", label: "Middle Name", type: "text", required: false },
+          { name: "phoneNumber", label: "Phone Number", type: "tel", required: true },
+          { name: "email", label: "Email", type: "email", required: true },
+          { name: "bvn", label: "BVN", type: "text", required: true },
+          { name: "nin", label: "NIN", type: "text", required: true },
+          { name: "addressNo", label: "Address No", type: "text", required: true },
+          { name: "streetName", label: "Street Name", type: "text", required: true },
+          { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
+          { name: "state", label: "State", type: "text", required: true },
+          { name: "localGovernment", label: "Local Government", type: "text", required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
+          { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
+          { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
+        ]
+      },
+      {
+        title: "Employment Information",
+        fields: [
+          { name: "employerName", label: "Employer Name", type: "text", required: true },
+          { name: "employerAddress", label: "Employer Address", type: "textarea", required: true },
+          { name: "jobTitle", label: "Title / Position", type: "text", required: true },
+          { name: "workEmail", label: "Work Email", type: "email", required: true },
+          { name: "employmentStartDate", label: "Employment Start Date", type: "date", required: true },
+          { name: "salaryPaymentDate", label: "Salary Payment Date", type: "select", options: ["1st", "15th", "Last day of month", "Other"], required: true },
+          { name: "netSalary", label: "Net Salary (₦)", type: "number", required: true }
+        ]
+      },
+      {
+        title: "Next of Kin",
+        fields: [
+          { name: "kinFirstName", label: "First Name", type: "text", required: true },
+          { name: "kinLastName", label: "Last Name", type: "text", required: true },
+          { name: "kinMiddleName", label: "Middle Name", type: "text", required: false },
+          { name: "kinRelationship", label: "Relationship", type: "select", options: ["Spouse", "Parent", "Sibling", "Child", "Friend", "Other"], required: true },
+          { name: "kinPhoneNumber", label: "Phone Number", type: "tel", required: true },
+          { name: "kinEmail", label: "Email Address", type: "email", required: true }
+        ]
+      },
+      {
+        title: "Salary Bank Account Details",
+        fields: [
+          { name: "bankName", label: "Bank Name", type: "text", required: true },
+          { name: "accountName", label: "Account Name", type: "text", required: true },
+          { name: "accountNumber", label: "Account Number", type: "text", required: true }
+        ]
+      },
+      {
+        title: "Documents",
+        documents: [
+          "Valid Government ID",
+          "Utility Bill",
+          "Work ID"
+        ]
+      }
     ]
   },
   "business-car": {
     title: "Business / Corporate Car Loan Application",
     description: "Commercial vehicle loans for business and corporate clients",
-    fields: [
-      { name: "businessName", label: "Business/Company Name", type: "text", required: true },
-      { name: "registrationNumber", label: "Business Registration Number", type: "text", required: true },
-      { name: "vehicleType", label: "Vehicle Type", type: "select", options: ["Commercial Van", "Pickup Truck", "Bus", "Heavy Duty Truck", "Fleet Vehicles", "Other"], required: true },
-      { name: "vehicleMake", label: "Vehicle Make", type: "text", required: true },
-      { name: "vehicleModel", label: "Vehicle Model", type: "text", required: true },
-      { name: "vehicleYear", label: "Vehicle Year", type: "select", options: Array.from({length: 15}, (_, i) => (2024 - i).toString()), required: true },
-      { name: "vehicleValue", label: "Estimated Vehicle Value (₦)", type: "number", required: true },
-      { name: "loanAmount", label: "Requested Loan Amount (₦)", type: "number", required: true },
-      { name: "businessPurpose", label: "Business Use Purpose", type: "textarea", required: true },
-      { name: "repaymentPeriod", label: "Preferred Repayment Period", type: "select", options: ["12 months", "18 months", "24 months", "36 months", "48 months", "60 months"], required: true }
-    ],
-    documents: [
-      "CAC Certificate",
-      "Vehicle documents (Registration, Insurance)", 
-      "Business financial statements",
-      "Tax returns",
-      "Directors' ID cards",
-      "Vehicle valuation report"
+    sections: [
+      {
+        title: "Vehicle Details",
+        fields: [
+          { name: "vehicleMake", label: "Make", type: "text", required: true },
+          { name: "vehicleModel", label: "Model", type: "text", required: true },
+          { name: "vehicleYear", label: "Year of Vehicle", type: "select", options: Array.from({length: 20}, (_, i) => (2024 - i).toString()), required: true },
+          { name: "vehicleAmount", label: "Vehicle Amount (₦)", type: "number", required: true },
+          { name: "tenure", label: "Tenure", type: "select", options: ["12 months", "18 months", "24 months", "36 months", "48 months"], required: true }
+        ]
+      },
+      {
+        title: "Personal Information",
+        fields: [
+          { name: "selfie", label: "Selfie", type: "file", accept: "image/*", required: true },
+          { name: "firstName", label: "First Name", type: "text", required: true },
+          { name: "lastName", label: "Last Name", type: "text", required: true },
+          { name: "middleName", label: "Middle Name", type: "text", required: false },
+          { name: "phoneNumber", label: "Phone Number", type: "tel", required: true },
+          { name: "email", label: "Email", type: "email", required: true },
+          { name: "bvn", label: "BVN", type: "text", required: true },
+          { name: "nin", label: "NIN", type: "text", required: true },
+          { name: "addressNo", label: "Address No", type: "text", required: true },
+          { name: "streetName", label: "Street Name", type: "text", required: true },
+          { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
+          { name: "state", label: "State", type: "text", required: true },
+          { name: "localGovernment", label: "Local Government", type: "text", required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
+          { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
+          { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
+        ]
+      },
+      {
+        title: "Business Information",
+        fields: [
+          { name: "businessName", label: "Business Name", type: "text", required: true },
+          { name: "businessDescription", label: "Description of Business", type: "textarea", required: true },
+          { name: "industry", label: "Industry", type: "text", required: true },
+          { name: "businessAddress", label: "Business Address", type: "textarea", required: true },
+          { name: "workEmail", label: "Work Email", type: "email", required: true }
+        ]
+      },
+      {
+        title: "Next of Kin",
+        fields: [
+          { name: "kinFirstName", label: "First Name", type: "text", required: true },
+          { name: "kinLastName", label: "Last Name", type: "text", required: true },
+          { name: "kinMiddleName", label: "Middle Name", type: "text", required: false },
+          { name: "kinRelationship", label: "Relationship", type: "select", options: ["Spouse", "Parent", "Sibling", "Child", "Friend", "Other"], required: true },
+          { name: "kinPhoneNumber", label: "Phone Number", type: "tel", required: true },
+          { name: "kinEmail", label: "Email Address", type: "email", required: true }
+        ]
+      },
+      {
+        title: "Salary Bank Account Details",
+        fields: [
+          { name: "bankName", label: "Bank Name", type: "text", required: true },
+          { name: "accountName", label: "Account Name", type: "text", required: true },
+          { name: "accountNumber", label: "Account Number", type: "text", required: true }
+        ]
+      },
+      {
+        title: "Documents",
+        documents: [
+          "Valid Government ID",
+          "Utility Bill",
+          "Work ID",
+          "CAC Certificate",
+          "CAC 2 and 7 or Memart or CAC Application Status"
+        ]
+      }
     ]
   }
 };
@@ -136,7 +351,7 @@ export default function LoanApplicationForm({ loanType }: LoanApplicationFormPro
 
   const handleInputChange = (field: string, value: string, fieldType?: string) => {
     // For number fields (amount fields), format the value with commas
-    if (fieldType === "number" && (field.includes('Amount') || field.includes('Income') || field.includes('Revenue') || field.includes('Value'))) {
+    if (fieldType === "number" && (field.includes('Amount') || field.includes('Salary') || field.includes('Vehicle'))) {
       const formattedValue = formatAmount(value);
       setFormData(prev => ({ ...prev, [field]: formattedValue }));
     } else {
@@ -161,10 +376,102 @@ export default function LoanApplicationForm({ loanType }: LoanApplicationFormPro
   };
 
   const isFormValid = () => {
-    const requiredFields = config.fields.filter(field => field.required);
+    const requiredFields = config.sections
+      .filter(section => section.fields)
+      .flatMap(section => section.fields!)
+      .filter(field => field.required);
+    
     const allFieldsFilled = requiredFields.every(field => formData[field.name]);
-    const allDocsUploaded = config.documents.every(doc => uploadedDocs[doc]);
+    
+    const documentsSection = config.sections.find(section => section.documents);
+    const allDocsUploaded = documentsSection ? 
+      documentsSection.documents!.every(doc => uploadedDocs[doc]) : true;
+    
     return allFieldsFilled && allDocsUploaded && agreedToTerms;
+  };
+
+  const renderField = (field: any) => {
+    switch (field.type) {
+      case "text":
+      case "email":
+      case "tel":
+      case "date":
+        return (
+          <Input
+            id={field.name}
+            type={field.type}
+            value={formData[field.name] || ""}
+            onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
+            className="text-black placeholder:text-gray-500"
+            required={field.required}
+          />
+        );
+      
+      case "number":
+        return (
+          <Input
+            id={field.name}
+            type="text"
+            value={formData[field.name] || ""}
+            onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
+            className="text-black placeholder:text-gray-500"
+            required={field.required}
+            placeholder="e.g., 500,000"
+          />
+        );
+      
+      case "select":
+        return (
+          <Select 
+            value={formData[field.name] || ""} 
+            onValueChange={(value) => handleInputChange(field.name, value)}
+          >
+            <SelectTrigger className="text-black">
+              <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {field.options?.map((option: string) => (
+                <SelectItem key={option} value={option}>{option}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      
+      case "textarea":
+        return (
+          <Textarea
+            id={field.name}
+            value={formData[field.name] || ""}
+            onChange={(e) => handleInputChange(field.name, e.target.value)}
+            className="text-black placeholder:text-gray-500"
+            rows={3}
+            required={field.required}
+          />
+        );
+      
+      case "file":
+        return (
+          <div className="flex items-center space-x-2">
+            <Button
+              type="button"
+              variant={uploadedDocs[field.name] ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleFileUpload(field.name)}
+            >
+              {field.name === "selfie" ? <Camera className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+              {uploadedDocs[field.name] ? "Uploaded ✓" : "Upload"}
+            </Button>
+            {field.accept && (
+              <span className="text-sm text-gray-500">
+                {field.accept.includes('image') ? 'Image files only' : 'All files'}
+              </span>
+            )}
+          </div>
+        );
+      
+      default:
+        return null;
+    }
   };
 
   return (
@@ -208,78 +515,55 @@ export default function LoanApplicationForm({ loanType }: LoanApplicationFormPro
               <p className="text-gray-600 text-center">{config.description}</p>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Personal/Business Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Application Details</h3>
-                  {config.fields.map((field) => (
-                    <div key={field.name} className="space-y-2">
-                      <Label htmlFor={field.name} className="text-gray-800 font-medium">
-                        {field.label} {field.required && <span className="text-red-500">*</span>}
-                      </Label>
-                      
-                      {field.type === "text" || field.type === "number" ? (
-                        <Input
-                          id={field.name}
-                          type={field.type === "number" ? "text" : field.type}
-                          value={formData[field.name] || ""}
-                          onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
-                          className="text-black placeholder:text-gray-500"
-                          required={field.required}
-                          placeholder={field.type === "number" && (field.name.includes('Amount') || field.name.includes('Income') || field.name.includes('Revenue') || field.name.includes('Value')) ? "e.g., 500,000" : ""}
-                        />
-                      ) : field.type === "select" ? (
-                        <Select 
-                          value={formData[field.name] || ""} 
-                          onValueChange={(value) => handleInputChange(field.name, value)}
-                        >
-                          <SelectTrigger className="text-black">
-                            <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {field.options?.map((option) => (
-                              <SelectItem key={option} value={option}>{option}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : field.type === "textarea" ? (
-                        <Textarea
-                          id={field.name}
-                          value={formData[field.name] || ""}
-                          onChange={(e) => handleInputChange(field.name, e.target.value)}
-                          className="text-black placeholder:text-gray-500"
-                          rows={3}
-                          required={field.required}
-                        />
-                      ) : null}
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {config.sections.map((section, sectionIndex) => (
+                  <div key={sectionIndex} className="space-y-6">
+                    <div className="border-b pb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <span className="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm mr-3">
+                          {sectionIndex + 1}
+                        </span>
+                        {section.title}
+                      </h3>
                     </div>
-                  ))}
-                </div>
 
-                {/* Document Upload */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Required Documents</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {config.documents.map((doc) => (
-                      <div key={doc} className="border rounded-lg p-4 space-y-2">
-                        <p className="text-sm font-medium text-gray-700">{doc}</p>
-                        <Button
-                          type="button"
-                          variant={uploadedDocs[doc] ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleFileUpload(doc)}
-                          className="w-full"
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          {uploadedDocs[doc] ? "Uploaded ✓" : "Upload File"}
-                        </Button>
+                    {section.fields && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {section.fields.map((field) => (
+                          <div key={field.name} className="space-y-2">
+                            <Label htmlFor={field.name} className="text-gray-800 font-medium">
+                              {field.label} {field.required && <span className="text-red-500">*</span>}
+                            </Label>
+                            {renderField(field)}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+
+                    {section.documents && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {section.documents.map((doc) => (
+                          <div key={doc} className="border rounded-lg p-4 space-y-2">
+                            <p className="text-sm font-medium text-gray-700">{doc}</p>
+                            <Button
+                              type="button"
+                              variant={uploadedDocs[doc] ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleFileUpload(doc)}
+                              className="w-full"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              {uploadedDocs[doc] ? "Uploaded ✓" : "Upload File"}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
+                ))}
 
                 {/* Terms Agreement */}
-                <div className="flex items-start space-x-2">
+                <div className="flex items-start space-x-2 border-t pt-6">
                   <Checkbox 
                     id="terms"
                     checked={agreedToTerms}
