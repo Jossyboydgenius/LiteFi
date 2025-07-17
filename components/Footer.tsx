@@ -53,6 +53,15 @@ export default function Footer() {
                   Travel Loan <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded">Coming Soon</span>
                 </span>
               </li>
+                <Link href="/dashboard" className="text-gray-400 hover:text-white text-sm transition-colors">
+                  Corporate Cash Loan
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard" className="text-gray-400 hover:text-white text-sm transition-colors">
+                  Auto Loan
+                </Link>
+              </li>
             </ul>
           </div>
 
