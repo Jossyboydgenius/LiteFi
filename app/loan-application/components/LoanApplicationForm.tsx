@@ -9,8 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Upload, User, Camera } from "lucide-react";
+import { ArrowLeft, Upload, Camera } from "lucide-react";
 import logoImage from "@/public/assets/images/logo.png";
 import { formatAmount } from "@/lib/formatters";
 
@@ -24,7 +23,7 @@ const loanConfigs = {
         title: "Loan Amount",
         fields: [
           { name: "loanAmount", label: "Loan Amount (₦)", type: "number", required: true },
-          { name: "tenure", label: "Tenure", type: "select", options: ["3 months", "6 months", "12 months", "18 months", "24 months"], required: true }
+          { name: "tenure", label: "Tenure", type: "select", options: Array.from({length: 22}, (_, i) => `${i + 3} months`), required: true }
         ]
       },
       {
@@ -57,7 +56,7 @@ const loanConfigs = {
           { name: "jobTitle", label: "Title / Position", type: "text", required: true },
           { name: "workEmail", label: "Work Email", type: "email", required: true },
           { name: "employmentStartDate", label: "Employment Start Date", type: "date", required: true },
-          { name: "salaryPaymentDate", label: "Salary Payment Date", type: "select", options: ["1st", "15th", "Last day of month", "Other"], required: true },
+          { name: "salaryPaymentDate", label: "Salary Payment Date", type: "select", options: Array.from({length: 30}, (_, i) => `${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'}`), required: true },
           { name: "netSalary", label: "Net Salary (₦)", type: "number", required: true }
         ]
       },
@@ -98,7 +97,7 @@ const loanConfigs = {
         title: "Loan Amount",
         fields: [
           { name: "loanAmount", label: "Loan Amount (₦)", type: "number", required: true },
-          { name: "tenure", label: "Tenure", type: "select", options: ["6 months", "12 months", "18 months", "24 months", "36 months"], required: true }
+          { name: "tenure", label: "Tenure", type: "select", options: Array.from({length: 22}, (_, i) => `${i + 3} months`), required: true }
         ]
       },
       {
@@ -175,7 +174,7 @@ const loanConfigs = {
           { name: "vehicleModel", label: "Model", type: "text", required: true },
           { name: "vehicleYear", label: "Year of Vehicle", type: "select", options: Array.from({length: 20}, (_, i) => (2024 - i).toString()), required: true },
           { name: "vehicleAmount", label: "Vehicle Amount (₦)", type: "number", required: true },
-          { name: "tenure", label: "Tenure", type: "select", options: ["12 months", "18 months", "24 months", "36 months", "48 months"], required: true }
+          { name: "tenure", label: "Tenure", type: "select", options: Array.from({length: 22}, (_, i) => `${i + 3} months`), required: true }
         ]
       },
       {
@@ -208,7 +207,7 @@ const loanConfigs = {
           { name: "jobTitle", label: "Title / Position", type: "text", required: true },
           { name: "workEmail", label: "Work Email", type: "email", required: true },
           { name: "employmentStartDate", label: "Employment Start Date", type: "date", required: true },
-          { name: "salaryPaymentDate", label: "Salary Payment Date", type: "select", options: ["1st", "15th", "Last day of month", "Other"], required: true },
+          { name: "salaryPaymentDate", label: "Salary Payment Date", type: "select", options: Array.from({length: 30}, (_, i) => `${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'}`), required: true },
           { name: "netSalary", label: "Net Salary (₦)", type: "number", required: true }
         ]
       },
@@ -252,7 +251,7 @@ const loanConfigs = {
           { name: "vehicleModel", label: "Model", type: "text", required: true },
           { name: "vehicleYear", label: "Year of Vehicle", type: "select", options: Array.from({length: 20}, (_, i) => (2024 - i).toString()), required: true },
           { name: "vehicleAmount", label: "Vehicle Amount (₦)", type: "number", required: true },
-          { name: "tenure", label: "Tenure", type: "select", options: ["12 months", "18 months", "24 months", "36 months", "48 months"], required: true }
+          { name: "tenure", label: "Tenure", type: "select", options: Array.from({length: 22}, (_, i) => `${i + 3} months`), required: true }
         ]
       },
       {
@@ -328,7 +327,6 @@ export default function LoanApplicationForm({ loanType }: LoanApplicationFormPro
   const router = useRouter();
   
   const [formData, setFormData] = useState<Record<string, string>>({});
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -383,11 +381,7 @@ export default function LoanApplicationForm({ loanType }: LoanApplicationFormPro
     
     const allFieldsFilled = requiredFields.every(field => formData[field.name]);
     
-    const documentsSection = config.sections.find(section => section.documents);
-    const allDocsUploaded = documentsSection ? 
-      documentsSection.documents!.every(doc => uploadedDocs[doc]) : true;
-    
-    return allFieldsFilled && allDocsUploaded && agreedToTerms;
+    return allFieldsFilled;
   };
 
   const renderField = (field: any) => {
@@ -561,18 +555,6 @@ export default function LoanApplicationForm({ loanType }: LoanApplicationFormPro
                     )}
                   </div>
                 ))}
-
-                {/* Terms Agreement */}
-                <div className="flex items-start space-x-2 border-t pt-6">
-                  <Checkbox 
-                    id="terms"
-                    checked={agreedToTerms}
-                    onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
-                  />
-                  <Label htmlFor="terms" className="text-sm text-gray-600">
-                    I agree to the terms and conditions and confirm that all information provided is accurate and complete.
-                  </Label>
-                </div>
 
                 {/* Submit Button */}
                 <Button
