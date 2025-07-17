@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Upload, Camera } from "lucide-react";
 import logoImage from "@/public/assets/images/logo.png";
 import { formatAmount } from "@/lib/formatters";
+import { states, getLGAsForState } from "@/lib/data/states";
 
 // Define loan form configurations according to the workflow
 const loanConfigs = {
@@ -40,8 +41,8 @@ const loanConfigs = {
           { name: "addressNo", label: "Address No", type: "text", required: true },
           { name: "streetName", label: "Street Name", type: "text", required: true },
           { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
-          { name: "state", label: "State", type: "text", required: true },
-          { name: "localGovernment", label: "Local Government", type: "text", required: true },
+          { name: "state", label: "State", type: "select", required: true },
+          { name: "localGovernment", label: "Local Government", type: "select", required: true },
           { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
           { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
@@ -114,8 +115,8 @@ const loanConfigs = {
           { name: "addressNo", label: "Address No", type: "text", required: true },
           { name: "streetName", label: "Street Name", type: "text", required: true },
           { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
-          { name: "state", label: "State", type: "text", required: true },
-          { name: "localGovernment", label: "Local Government", type: "text", required: true },
+          { name: "state", label: "State", type: "select", required: true },
+          { name: "localGovernment", label: "Local Government", type: "select", required: true },
           { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
           { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
@@ -191,8 +192,8 @@ const loanConfigs = {
           { name: "addressNo", label: "Address No", type: "text", required: true },
           { name: "streetName", label: "Street Name", type: "text", required: true },
           { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
-          { name: "state", label: "State", type: "text", required: true },
-          { name: "localGovernment", label: "Local Government", type: "text", required: true },
+          { name: "state", label: "State", type: "select", required: true },
+          { name: "localGovernment", label: "Local Government", type: "select", required: true },
           { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
           { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
@@ -329,6 +330,8 @@ export default function LoanApplicationForm({ loanType }: LoanApplicationFormPro
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [availableLGAs, setAvailableLGAs] = useState<string[]>([]);
 
   const config = loanConfigs[loanType as keyof typeof loanConfigs];
 
@@ -356,6 +359,21 @@ export default function LoanApplicationForm({ loanType }: LoanApplicationFormPro
       setFormData(prev => ({ ...prev, [field]: value }));
     }
   };
+
+  const handleStateChange = (value: string) => {
+    setSelectedState(value);
+    setFormData(prev => ({ ...prev, state: value, localGovernment: "" }));
+  };
+
+  // Update available LGAs when selected state changes
+  useEffect(() => {
+    if (selectedState) {
+      const lgas = getLGAsForState(selectedState);
+      setAvailableLGAs(lgas);
+    } else {
+      setAvailableLGAs([]);
+    }
+  }, [selectedState]);
 
   const handleFileUpload = (docName: string) => {
     // Simulate file upload
@@ -415,6 +433,44 @@ export default function LoanApplicationForm({ loanType }: LoanApplicationFormPro
         );
       
       case "select":
+        // Special handling for state field
+        if (field.name === "state") {
+          return (
+            <Select 
+              value={formData[field.name] || ""} 
+              onValueChange={handleStateChange}
+            >
+              <SelectTrigger className="text-black">
+                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {states.map((state) => (
+                  <SelectItem key={state.alias} value={state.state}>{state.state}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        }
+        // Special handling for local government field
+        else if (field.name === "localGovernment") {
+          return (
+            <Select 
+              value={formData[field.name] || ""} 
+              onValueChange={(value) => handleInputChange(field.name, value)}
+              disabled={!selectedState}
+            >
+              <SelectTrigger className="text-black">
+                <SelectValue placeholder={selectedState ? "Select local government" : "Select state first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableLGAs.map((lga) => (
+                  <SelectItem key={lga} value={lga}>{lga}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        }
+        // Default handling for other select fields
         return (
           <Select 
             value={formData[field.name] || ""} 

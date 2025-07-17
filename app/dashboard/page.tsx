@@ -213,7 +213,7 @@ export default function Dashboard() {
                         <TableCell>{new Date(loan.appliedDate).toLocaleDateString()}</TableCell>
                         <TableCell>{new Date(loan.expectedResponse).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => handleViewLoan(loan)}>
+                          <Button variant="outline" size="sm" onClick={() => handleViewLoan(loan)}>
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
@@ -266,6 +266,89 @@ export default function Dashboard() {
             </Card>
           ))}
         </div>
+
+        {/* Loan Details Modal */}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Loan Application Details</DialogTitle>
+            </DialogHeader>
+            {selectedLoan && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Application ID</p>
+                    <p className="text-sm font-semibold">{selectedLoan.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Loan Type</p>
+                    <p className="text-sm font-semibold">{selectedLoan.loanType}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Amount</p>
+                    <p className="text-sm font-semibold">{selectedLoan.amount}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Status</p>
+                    <div>{getStatusBadge(selectedLoan.status)}</div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Applied Date</p>
+                    <p className="text-sm font-semibold">{new Date(selectedLoan.appliedDate).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Expected Response</p>
+                    <p className="text-sm font-semibold">{new Date(selectedLoan.expectedResponse).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium mb-2">Applicant Information</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Name</p>
+                      <p className="text-sm font-semibold">{selectedLoan.applicantName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Phone</p>
+                      <p className="text-sm font-semibold">{selectedLoan.phoneNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Email</p>
+                      <p className="text-sm font-semibold">{selectedLoan.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Employment Status</p>
+                      <p className="text-sm font-semibold">{selectedLoan.employmentStatus}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Monthly Income</p>
+                      <p className="text-sm font-semibold">{selectedLoan.monthlyIncome}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium mb-2">Loan Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Purpose</p>
+                      <p className="text-sm font-semibold">{selectedLoan.loanPurpose}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Repayment Term</p>
+                      <p className="text-sm font-semibold">{selectedLoan.repaymentTerm}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Interest Rate</p>
+                      <p className="text-sm font-semibold">{selectedLoan.interestRate}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Information Section */}
         <div className="mt-12 bg-white rounded-lg p-6 max-w-4xl mx-auto">
