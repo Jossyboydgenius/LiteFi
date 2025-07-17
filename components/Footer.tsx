@@ -39,19 +39,14 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <span className="text-gray-500 text-sm opacity-60 cursor-not-allowed flex items-center">
-                  Working Capital Loan <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded">Coming Soon</span>
-                </span>
+                <Link href="/dashboard" className="text-gray-400 hover:text-white text-sm transition-colors">
+                  Corporate Cash Loan
+                </Link>
               </li>
               <li>
-                <span className="text-gray-500 text-sm opacity-60 cursor-not-allowed flex items-center">
-                  Auto Loan <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded">Coming Soon</span>
-                </span>
-              </li>
-              <li>
-                <span className="text-gray-500 text-sm opacity-60 cursor-not-allowed flex items-center">
-                  Travel Loan <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded">Coming Soon</span>
-                </span>
+                <Link href="/dashboard" className="text-gray-400 hover:text-white text-sm transition-colors">
+                  Auto Loan
+                </Link>
               </li>
             </ul>
           </div>

@@ -35,6 +35,7 @@ interface LoanApplication {
   documents: string[];
   approvedAmount?: number;
   approvedTenure?: string;
+   userId?: string; // Added userId field
 }
 
 const generateId = () => nanoid(10);
@@ -55,7 +56,8 @@ const mockApplications: LoanApplication[] = [
     submittedAt: '2024-01-15T10:30:00Z',
     documents: ['id_card.pdf', 'salary_slip.pdf', 'bank_statement.pdf'],
     approvedAmount: 400000,
-    approvedTenure: '12 months'
+    approvedTenure: '12 months',
+    userId: 'user123' // Added userId
   },
   {
     id: '2',
@@ -76,7 +78,8 @@ const mockApplications: LoanApplication[] = [
     notes: 'Good credit history and stable income.',
     documents: ['id_card.pdf', 'driver_license.pdf', 'insurance.pdf', 'vehicle_inspection.pdf'],
     approvedAmount: 2000000,
-    approvedTenure: '24 months'
+    approvedTenure: '24 months',
+    userId: 'user456' // Added userId
   },
   {
     id: '3',
@@ -94,7 +97,8 @@ const mockApplications: LoanApplication[] = [
     reviewedAt: '2024-01-14T11:30:00Z',
     reviewedBy: 'Admin User',
     notes: 'Insufficient business documentation provided.',
-    documents: ['business_registration.pdf', 'tax_certificate.pdf']
+    documents: ['business_registration.pdf', 'tax_certificate.pdf'],
+    userId: 'user789' // Added userId
   }
 ];
 
@@ -105,6 +109,8 @@ export default function AdminDashboard() {
   const [filterType, setFilterType] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false); // Added state for approve modal
+  const [approvalApplication, setApprovalApplication] = useState<LoanApplication | null>(null); // Added state for application being approved
   const { toast } = useToast();
 
   const filteredApplications = applications.filter(app => {
@@ -113,7 +119,8 @@ export default function AdminDashboard() {
     const matchesSearch = searchTerm === '' || 
       app.applicantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.applicationId.toLowerCase().includes(searchTerm.toLowerCase());
+      app.applicationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (app.userId && app.userId.toLowerCase().includes(searchTerm.toLowerCase())); // Added search by userId
     
     return matchesStatus && matchesType && matchesSearch;
   });
@@ -128,7 +135,14 @@ export default function AdminDashboard() {
       .reduce((sum, app) => sum + app.amount, 0)
   };
 
-  const handleApprove = (application: LoanApplication) => {
+  // Modified to open the approval modal instead of directly approving
+  const handleApproveClick = (application: LoanApplication) => {
+    setApprovalApplication(application);
+    setShowApproveModal(true);
+  };
+
+  // New function to handle the actual approval with tenure and amount
+  const handleApprove = (application: LoanApplication, approvedAmount: number, approvedTenure: string) => {
     const loanId = generateId();
     const updatedApplications = applications.map(app =>
       app.id === application.id
@@ -136,13 +150,16 @@ export default function AdminDashboard() {
             ...app,
             status: 'approved' as const,
             loanId,
+            approvedAmount,
+            approvedTenure,
             reviewedAt: new Date().toISOString(),
             reviewedBy: 'Admin User',
-            notes: `Loan approved with ID: ${loanId}`
+            notes: `Loan approved with ID: ${loanId}. Amount: ${approvedAmount}, Tenure: ${approvedTenure}`
           }
         : app
     );
     setApplications(updatedApplications);
+    setShowApproveModal(false);
     toast({
       title: "Application Approved",
       description: `Loan ID ${loanId} has been generated for ${application.applicantName}`,
@@ -299,7 +316,7 @@ ${app.notes ? `Notes: ${app.notes}` : ''}
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Console Dashboard</h1>
             <p className="text-gray-600">Manage loan applications and track performance</p>
           </div>
           <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
@@ -429,6 +446,7 @@ ${app.notes ? `Notes: ${app.notes}` : ''}
                 <TableHeader>
                   <TableRow>
                     <TableHead>Application ID</TableHead>
+                    <TableHead>User ID</TableHead>
                     <TableHead>Loan ID</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Applicant</TableHead>
@@ -442,6 +460,9 @@ ${app.notes ? `Notes: ${app.notes}` : ''}
                   {filteredApplications.map((application) => (
                     <TableRow key={application.id}>
                       <TableCell className="font-mono text-sm">{application.applicationId}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {application.userId || '-'}
+                      </TableCell>
                       <TableCell className="font-mono text-sm">
                         {application.loanId || '-'}
                       </TableCell>
@@ -474,7 +495,7 @@ ${app.notes ? `Notes: ${app.notes}` : ''}
                               {selectedApplication && (
                                 <ApplicationDetailsModal 
                                   application={selectedApplication}
-                                  onApprove={handleApprove}
+                                  onApprove={handleApproveClick} // Changed to use the click handler
                                   onReject={handleReject}
                                 />
                               )}
@@ -484,7 +505,7 @@ ${app.notes ? `Notes: ${app.notes}` : ''}
                             <>
                               <Button
                                 size="sm"
-                                onClick={() => handleApprove(application)}
+                                onClick={() => handleApproveClick(application)} // Changed to use the click handler
                                 className="bg-green-600 hover:bg-green-700"
                               >
                                 <CheckCircle className="h-4 w-4" />
@@ -514,10 +535,24 @@ ${app.notes ? `Notes: ${app.notes}` : ''}
           </CardContent>
         </Card>
       </div>
+
+      {/* Approval Modal */}
+      <Dialog open={showApproveModal} onOpenChange={setShowApproveModal}>
+        <DialogContent className="bg-white">
+          {approvalApplication && (
+            <ApproveApplicationModal 
+              application={approvalApplication}
+              onApprove={handleApprove}
+              onCancel={() => setShowApproveModal(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
+// Update ApplicationDetailsModal to use handleApproveClick instead of direct approval
 interface ApplicationDetailsModalProps {
   application: LoanApplication;
   onApprove: (application: LoanApplication) => void;
@@ -731,6 +766,98 @@ function RejectApplicationModal({ application, onReject }: RejectApplicationModa
           disabled={!reason.trim()}
         >
           Confirm Rejection
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+interface ApproveApplicationModalProps {
+  application: LoanApplication;
+  onApprove: (application: LoanApplication, approvedAmount: number, approvedTenure: string) => void;
+  onCancel: () => void;
+}
+
+function ApproveApplicationModal({ application, onApprove, onCancel }: ApproveApplicationModalProps) {
+  const [approvedAmount, setApprovedAmount] = useState<number>(application.amount);
+  const [formattedAmount, setFormattedAmount] = useState<string>(application.amount.toLocaleString());
+  const [approvedTenure, setApprovedTenure] = useState<string>('12 months');
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Remove non-numeric characters and parse to number
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    const numericValue = rawValue ? parseInt(rawValue, 10) : 0;
+    
+    // Update the numeric state
+    setApprovedAmount(numericValue);
+    
+    // Format with commas for display
+    setFormattedAmount(numericValue.toLocaleString());
+  };
+
+  const handleSubmit = () => {
+    if (approvedAmount > 0 && approvedTenure) {
+      onApprove(application, approvedAmount, approvedTenure);
+    }
+  };
+
+  return (
+    <div className="space-y-4 bg-white text-black">
+      <DialogHeader>
+        <DialogTitle className="text-black">Approve Application</DialogTitle>
+      </DialogHeader>
+      <div>
+        <p className="text-sm text-gray-600 mb-4">
+          You are about to approve the application for <strong className="text-black">{application.applicantName}</strong>.
+          Please specify the approved amount and tenure.
+        </p>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="approvedAmount" className="text-gray-700">Approved Amount (₦)</Label>
+            <Input
+              id="approvedAmount"
+              type="text"
+              value={formattedAmount}
+              onChange={handleAmountChange}
+              className="mt-2 text-black"
+              placeholder="Enter amount"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="approvedTenure" className="text-gray-700">Approved Tenure</Label>
+            <Select 
+              value={approvedTenure} 
+              onValueChange={setApprovedTenure}
+            >
+              <SelectTrigger className="mt-2 text-black">
+                <SelectValue placeholder="Select tenure" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3 months">3 months</SelectItem>
+                <SelectItem value="6 months">6 months</SelectItem>
+                <SelectItem value="9 months">9 months</SelectItem>
+                <SelectItem value="12 months">12 months</SelectItem>
+                <SelectItem value="15 months">15 months</SelectItem>
+                <SelectItem value="18 months">18 months</SelectItem>
+                <SelectItem value="21 months">21 months</SelectItem>
+                <SelectItem value="24 months">24 months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-2 justify-end">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button 
+          className="bg-green-600 hover:bg-green-700"
+          onClick={handleSubmit}
+          disabled={approvedAmount <= 0 || !approvedTenure}
+        >
+          Confirm Approval
         </Button>
       </div>
     </div>
