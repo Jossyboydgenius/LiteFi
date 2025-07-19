@@ -1,0 +1,180 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(nanoid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  role          Role     @default(USER)
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  applications  LoanApplication[]
+  approvedApps  LoanApplication[] @relation("ApprovedBy")
+  rejectedApps  LoanApplication[] @relation("RejectedBy")
+  
+  @@map("users")
+}
+
+enum Role {
+  USER  @map("user")
+  ADMIN @map("admin")
+}
+
+model LoanApplication {
+  id            String      @id @default(nanoid())
+  applicationId String      @unique @map("application_id")
+  loanId        String?     @map("loan_id")
+  userId        String      @map("user_id")
+  loanType      LoanType    @map("loan_type")
+  status        AppStatus   @default(PENDING)
+  
+  // Loan Details
+  loanAmount    Decimal?    @map("loan_amount")
+  tenure        Int?
+  vehicleMake   String?     @map("vehicle_make")
+  vehicleModel  String?     @map("vehicle_model")
+  vehicleYear   Int?        @map("vehicle_year")
+  vehicleAmount Decimal?    @map("vehicle_amount")
+  
+  // Personal Information
+  middleName        String? @map("middle_name")
+  phoneNumber       String? @map("phone_number")
+  bvn               String?
+  nin               String?
+  addressNumber     String? @map("address_number")
+  streetName        String? @map("street_name")
+  nearestBusStop    String? @map("nearest_bus_stop")
+  state             String?
+  localGovernment   String? @map("local_government")
+  homeOwnership     HomeOwnership? @map("home_ownership")
+  yearsInAddress    Int?    @map("years_in_address")
+  maritalStatus     MaritalStatus? @map("marital_status")
+  educationLevel    String? @map("education_level")
+  
+  // Employment/Business Info
+  employerName        String?   @map("employer_name")
+  employerAddress     String?   @map("employer_address")
+  jobTitle            String?   @map("job_title")
+  workEmail           String?   @map("work_email")
+  employmentStartDate DateTime? @map("employment_start_date")
+  salaryPaymentDate   String?   @map("salary_payment_date")
+  netSalary           Decimal?  @map("net_salary")
+  businessName        String?   @map("business_name")
+  businessDescription String?   @map("business_description")
+  industry            String?
+  businessAddress     String?   @map("business_address")
+  
+  // Next of Kin
+  nokFirstName   String? @map("nok_first_name")
+  nokLastName    String? @map("nok_last_name")
+  nokMiddleName  String? @map("nok_middle_name")
+  nokRelationship String? @map("nok_relationship")
+  nokPhone       String? @map("nok_phone")
+  nokEmail       String? @map("nok_email")
+  
+  // Bank Details
+  bankName      String? @map("bank_name")
+  accountName   String? @map("account_name")
+  accountNumber String? @map("account_number")
+  
+  // Status Management
+  approvedById    String?   @map("approved_by")
+  rejectedById    String?   @map("rejected_by")
+  rejectionReason String?   @map("rejection_reason")
+  approvedAt      DateTime? @map("approved_at")
+  rejectedAt      DateTime? @map("rejected_at")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy User?      @relation("ApprovedBy", fields: [approvedById], references: [id])
+  rejectedBy User?      @relation("RejectedBy", fields: [rejectedById], references: [id])
+  documents  Document[]
+  
+  @@map("loan_applications")
+}
+
+enum LoanType {
+  SALARY_CASH   @map("salary-cash")
+  BUSINESS_CASH @map("business-cash")
+  SALARY_CAR    @map("salary-car")
+  BUSINESS_CAR  @map("business-car")
+}
+
+enum AppStatus {
+  PENDING   @map("pending")
+  APPROVED  @map("approved")
+  REJECTED  @map("rejected")
+  DISBURSED @map("disbursed")
+}
+
+enum HomeOwnership {
+  OWNED  @map("owned")
+  RENTED @map("rented")
+  FAMILY @map("family")
+}
+
+enum MaritalStatus {
+  SINGLE   @map("single")
+  MARRIED  @map("married")
+  DIVORCED @map("divorced")
+  WIDOWED  @map("widowed")
+}
+
+model Document {
+  id            String      @id @default(nanoid())
+  applicationId String      @map("application_id")
+  documentType  DocumentType @map("document_type")
+  fileName      String      @map("file_name")
+  filePath      String      @map("file_path")
+  fileSize      Int?        @map("file_size")
+  mimeType      String?     @map("mime_type")
+  uploadedAt    DateTime    @default(now()) @map("uploaded_at")
+  
+  // Relations
+  application LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  @@map("documents")
+}
+
+enum DocumentType {
+  GOVERNMENT_ID    @map("government_id")
+  UTILITY_BILL     @map("utility_bill")
+  WORK_ID          @map("work_id")
+  CAC_CERTIFICATE  @map("cac_certificate")
+  CAC_2_7          @map("cac_2_7")
+  SELFIE           @map("selfie")
+}
+
+model OtpVerification {
+  id        String      @id @default(nanoid())
+  email     String
+  otpCode   String      @map("otp_code")
+  type      OtpType
+  expiresAt DateTime    @map("expires_at")
+  used      Boolean     @default(false)
+  createdAt DateTime    @default(now()) @map("created_at")
+  
+  @@map("otp_verifications")
+}
+
+enum OtpType {
+  EMAIL_VERIFICATION @map("email_verification")
+  PASSWORD_RESET     @map("password_reset")
+}

@@ -25,3 +25,108 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/lib/generated/prisma
+
+# database files
+prisma/dev.db
+prisma/dev.db-journal
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# google cloud platform
+gcp-key.json
+service-account-key.json
+*.json.key
+
+# cloud sql proxy
+cloud-sql-proxy
+
+# test files and scripts
+test-*.js
+create-test-user.js
+
+# logs
+*.log
+logs/
+
+# temporary files
+*.tmp
+*.temp
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# mac os
+.DS_Store
+
+# backup files
+*.backup
+*.bak
+
+# sensitive documentation (if any)
+*.private.md
+secrets.md
+
+# package manager lock files (optional - uncomment if needed)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# coverage reports
+coverage/
+*.lcov
+
+# runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# dependency directories
+jspm_packages/
+
+# optional npm cache directory
+.npm
+
+# optional eslint cache
+.eslintcache
+
+# microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# optional REPL history
+.node_repl_history
+
+# output of 'npm pack'
+*.tgz
+
+# yarn integrity file
+.yarn-integrity
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+out
+
+# nuxt.js build / generate output
+.nuxt
+dist
+
+# storybook build outputs
+.out
+.storybook-out
+
+# temporary folders
+tmp/
+temp/

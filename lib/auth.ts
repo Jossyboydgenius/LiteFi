@@ -1,10 +1,35 @@
-// Placeholder auth utilities
-export const useRedirectIfAuthenticated = () => {
-  // Placeholder hook - would check if user is authenticated
-  // and redirect if needed
-  return;
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+// Check if user is authenticated
+export const isAuthenticated = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const token = localStorage.getItem("token");
+  const userId = localStorage.getItem("userId");
+  return !!(token && userId);
 };
 
+// Get current user data
+export const getCurrentUser = () => {
+  if (typeof window === "undefined") return null;
+  const userData = localStorage.getItem("userData");
+  return userData ? JSON.parse(userData) : null;
+};
+
+// Hook to redirect if already authenticated
+export const useRedirectIfAuthenticated = () => {
+  const router = useRouter();
+  
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const user = getCurrentUser();
+      const targetPath = user?.role === 'ADMIN' ? '/console' : '/dashboard';
+      router.replace(targetPath);
+    }
+  }, [router]);
+};
+
+// Set authentication token and user data
 export const setAuthToken = (token: string, userId: string) => {
   if (typeof window !== "undefined") {
     localStorage.setItem("token", token);
@@ -12,7 +37,17 @@ export const setAuthToken = (token: string, userId: string) => {
   }
 };
 
+// Clear authentication data
+export const clearAuth = () => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userData");
+  }
+};
+
+// Handle successful authentication
 export const handleAuthSuccess = () => {
-  // Placeholder function
+  // This function can be used for any post-authentication logic
   return;
 };

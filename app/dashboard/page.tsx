@@ -302,49 +302,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 
-                <div className="border-t pt-4">
-                  <h4 className="text-sm font-medium mb-2">Applicant Information</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Name</p>
-                      <p className="text-sm font-semibold">{selectedLoan.applicantName}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Phone</p>
-                      <p className="text-sm font-semibold">{selectedLoan.phoneNumber}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Email</p>
-                      <p className="text-sm font-semibold">{selectedLoan.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Employment Status</p>
-                      <p className="text-sm font-semibold">{selectedLoan.employmentStatus}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Monthly Income</p>
-                      <p className="text-sm font-semibold">{selectedLoan.monthlyIncome}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border-t pt-4">
-                  <h4 className="text-sm font-medium mb-2">Loan Details</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Purpose</p>
-                      <p className="text-sm font-semibold">{selectedLoan.loanPurpose}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Repayment Term</p>
-                      <p className="text-sm font-semibold">{selectedLoan.repaymentTerm}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Interest Rate</p>
-                      <p className="text-sm font-semibold">{selectedLoan.interestRate}</p>
-                    </div>
-                  </div>
-                </div>
+
               </div>
             )}
           </DialogContent>

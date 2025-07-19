@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { authApi } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRedirectIfAuthenticated } from "@/lib/auth";
+import EmailVerificationModal from "@/app/components/EmailVerificationModal";
 
 // Import images directly
 import heroImage from "@/public/assets/images/image.png";
@@ -32,6 +33,8 @@ function LoginContent() {
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [redirectPath, setRedirectPath] = useState("/dashboard");
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
 
   // Get the redirect path from URL parameters if available
   useEffect(() => {
@@ -43,6 +46,76 @@ function LoginContent() {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleVerifyEmail = async (otp: string) => {
+    setIsLoading(true);
+    try {
+      const response = await authApi.verifyEmail({
+        email: verificationEmail,
+        code: otp
+      });
+
+      if (response.success) {
+        success("Email verified successfully!", "You can now log in to your account");
+        setShowVerificationModal(false);
+        // Optionally auto-login after verification
+        // You can add auto-login logic here if needed
+      } else {
+        error("Verification failed", response.error || "Please try again");
+      }
+    } catch (err: any) {
+      console.error("Verification error:", err);
+      let errorMessage = "An unexpected error occurred";
+      
+      if (err?.message && typeof err.message === 'string') {
+        errorMessage = err.message;
+      } else if (err?.error && typeof err.error === 'string') {
+        errorMessage = err.error;
+      }
+      
+      error("Verification failed", errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsLoading(true);
+    try {
+      const response = await authApi.resendOtp({
+        email: verificationEmail,
+        type: 'email'
+      });
+      
+      if (response.success) {
+        success("Verification code sent", `A new code has been sent to ${verificationEmail}`);
+      } else {
+        error("Failed to resend code", response.error || "Please try again");
+      }
+    } catch (err: any) {
+      console.error("Resend OTP error:", err);
+      let errorMessage = "An unexpected error occurred";
+      
+      if (err?.message && typeof err.message === 'string') {
+        errorMessage = err.message;
+      } else if (err?.error && typeof err.error === 'string') {
+        errorMessage = err.error;
+      }
+      
+      error("Failed to resend code", errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleChangeEmail = () => {
+    setShowVerificationModal(false);
+    setVerificationEmail("");
+  };
+
+  const handleCloseModal = () => {
+    setShowVerificationModal(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,20 +131,21 @@ function LoginContent() {
         console.log("Login response:", response);
 
         // Check for the actual backend response structure
-        // Backend returns: {message, user, accessToken, refreshToken}
-        // Not: {success: true, data: {user, token}}
-        if (response.user && response.accessToken) {
+        // Backend returns: {success: true, user, token}
+        if (response.success && response.user && response.token) {
           // Store the token and user ID using the new auth function
           const { setAuthToken, handleAuthSuccess } = await import('@/lib/auth');
-          setAuthToken(response.accessToken, response.user.id);
+          setAuthToken(response.token, response.user.id);
           
           // Store user data in local storage
           localStorage.setItem('userData', JSON.stringify(response.user));
           
+          // Cookie is already set by the server with HttpOnly flag
+          
           success("Login successful!", "Welcome back to LiteFi");
           
           // Check if user is admin and redirect accordingly
-          const targetPath = response.user.role === 'admin' ? '/admin' : redirectPath;
+          const targetPath = response.user.role === 'ADMIN' ? '/console' : '/dashboard';
           
           // Redirect to the appropriate dashboard
           setTimeout(() => {
@@ -98,10 +172,8 @@ function LoginContent() {
             // Store email for email verification flow
             sessionStorage.setItem('registrationEmail', email);
             
-            // Redirect to sign-up for email verification
-            setTimeout(() => {
-              window.location.href = `/auth/sign-up`;
-            }, 2000);
+            // Show verification message without redirect
+            // User can use the signup page for email verification
           } else if (response.message?.toLowerCase().includes('verify') && 
                      (response.message?.toLowerCase().includes('phone') || 
                       response.message?.toLowerCase().includes('otp'))) {
@@ -110,10 +182,8 @@ function LoginContent() {
             // Store email for phone verification flow
             sessionStorage.setItem('registrationEmail', email);
             
-            // Redirect to phone verification
-            setTimeout(() => {
-              window.location.href = `/auth/verify-phone`;
-            }, 2000);
+            // Show verification message without redirect
+            // User can use the signup page for email verification
           } else if (response.message?.toLowerCase().includes('verify') && 
                      (response.message?.toLowerCase().includes('email') || 
                       response.message?.toLowerCase().includes('mail'))) {
@@ -122,10 +192,8 @@ function LoginContent() {
             // Store email for email verification flow
             sessionStorage.setItem('registrationEmail', email);
             
-            // Redirect to sign-up for email verification
-            setTimeout(() => {
-              window.location.href = `/auth/sign-up`;
-            }, 2000);
+            // Show verification message without redirect
+            // User can use the signup page for email verification
           } else if (response.message?.toLowerCase().includes('otp') && 
                      (response.message?.toLowerCase().includes('phone') || 
                       response.message?.toLowerCase().includes('sms'))) {
@@ -134,10 +202,8 @@ function LoginContent() {
             // Store email for phone verification flow
             sessionStorage.setItem('registrationEmail', email);
             
-            // Redirect to phone verification
-            setTimeout(() => {
-              window.location.href = `/auth/verify-phone`;
-            }, 2000);
+            // Show verification message without redirect
+            // User can use the signup page for email verification
           } else if (response.message?.toLowerCase().includes('otp') && 
                      (response.message?.toLowerCase().includes('email') || 
                       response.message?.toLowerCase().includes('mail'))) {
@@ -161,7 +227,20 @@ function LoginContent() {
         let errorMessage = "An unexpected error occurred";
         
         // Handle the different error response structures from the backend
-        if (err?.response?.status === 401) {
+        if (err?.response?.status === 403) {
+          // Forbidden - email verification required
+          errorMessage = err?.response?.data?.message || "Please verify your email before logging in";
+          
+          // Check if this is specifically about email verification
+          if (errorMessage.toLowerCase().includes('verify') && 
+              errorMessage.toLowerCase().includes('email')) {
+            // Show email verification modal instead of just error message
+            setVerificationEmail(email);
+            setShowVerificationModal(true);
+            setIsLoading(false);
+            return; // Don't show error toast, show modal instead
+          }
+        } else if (err?.response?.status === 401) {
           // Unauthorized - invalid credentials
           errorMessage = err?.response?.data?.message || "Invalid email or password";
         } else if (err?.response?.status === 400) {
@@ -204,10 +283,8 @@ function LoginContent() {
           // Store email for phone verification flow
           sessionStorage.setItem('registrationEmail', email);
           
-          // Redirect to phone verification
-          setTimeout(() => {
-            window.location.href = `/auth/verify-phone`;
-          }, 2000);
+          // Show verification message without redirect
+          // User can use the signup page for email verification
         } else if (errorMessage.toLowerCase().includes('verify') && 
                    (errorMessage.toLowerCase().includes('email') || 
                     errorMessage.toLowerCase().includes('mail'))) {
@@ -216,10 +293,8 @@ function LoginContent() {
           // Store email for email verification flow
           sessionStorage.setItem('registrationEmail', email);
           
-          // Redirect to sign-up for email verification
-          setTimeout(() => {
-            window.location.href = `/auth/sign-up`;
-          }, 2000);
+          // Show verification message without redirect
+          // User can use the signup page for email verification
         } else if (errorMessage.toLowerCase().includes('otp') && 
                    (errorMessage.toLowerCase().includes('phone') || 
                     errorMessage.toLowerCase().includes('sms'))) {
@@ -228,10 +303,8 @@ function LoginContent() {
           // Store email for phone verification flow
           sessionStorage.setItem('registrationEmail', email);
           
-          // Redirect to phone verification
-          setTimeout(() => {
-            window.location.href = `/auth/verify-phone`;
-          }, 2000);
+          // Show verification message without redirect
+          // User can use the signup page for email verification
         } else if (errorMessage.toLowerCase().includes('otp') && 
                    (errorMessage.toLowerCase().includes('email') || 
                     errorMessage.toLowerCase().includes('mail'))) {
@@ -240,10 +313,8 @@ function LoginContent() {
           // Store email for email verification flow
           sessionStorage.setItem('registrationEmail', email);
           
-          // Redirect to sign-up for email verification
-          setTimeout(() => {
-            window.location.href = `/auth/sign-up`;
-          }, 2000);
+          // Show verification message without redirect
+          // User can use the signup page for email verification
         } else if (errorMessage.toLowerCase().includes('password not set') || 
                    errorMessage.toLowerCase().includes('complete registration') ||
                    errorMessage.toLowerCase().includes('create password')) {
@@ -374,6 +445,18 @@ function LoginContent() {
           </form>
         </div>
       </div>
+      
+      {/* Email Verification Modal */}
+      {showVerificationModal && (
+        <EmailVerificationModal
+          email={verificationEmail}
+          onCloseAction={handleCloseModal}
+          onVerifyAction={handleVerifyEmail}
+          onResendOtpAction={handleResendOtp}
+          onChangeEmailAction={handleChangeEmail}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   );
 }

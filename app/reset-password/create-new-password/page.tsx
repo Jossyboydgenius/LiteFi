@@ -52,7 +52,7 @@ function PasswordResetForm() {
         // Call the API to confirm password reset
         await authApi.confirmPasswordReset({
           email,
-          code: resetPasswordOtp,
+          otp: resetPasswordOtp,
           newPassword: password
         });
 

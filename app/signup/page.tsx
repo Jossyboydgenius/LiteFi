@@ -72,8 +72,8 @@ function SignUpContent() {
           email: storedEmail
         }));
         
-        // Show verification modal immediately if email is already set
-        setShowVerificationModal(true);
+        // Don't automatically show verification modal
+        // Only show it after successful registration
         
         // Clean up the stored email
         sessionStorage.removeItem('registrationEmail');
@@ -195,14 +195,16 @@ function SignUpContent() {
         // Extract the actual error message from the server response
         let errorMessage = "An unexpected error occurred";
         
-        if (err?.message && typeof err.message === 'string') {
-          errorMessage = err.message;
-        } else if (err?.error && typeof err.error === 'string') {
+        // The register API throws an object with both message and error properties
+        // Check error property first since that's what the backend sends
+        if (err?.error && typeof err.error === 'string') {
           errorMessage = err.error;
-        } else if (err?.response?.data?.message) {
-          errorMessage = err.response.data.message;
+        } else if (err?.message && typeof err.message === 'string') {
+          errorMessage = err.message;
         } else if (err?.response?.data?.error) {
           errorMessage = err.response.data.error;
+        } else if (err?.response?.data?.message) {
+          errorMessage = err.response.data.message;
         } else if (typeof err === 'string') {
           errorMessage = err;
         }
@@ -245,9 +247,10 @@ function SignUpContent() {
         // Store email for subsequent steps
         sessionStorage.setItem('registrationEmail', formData.email);
         
-        // Continue registration flow - redirect to phone verification
+        // Continue registration flow - show success message
         setTimeout(() => {
-          window.location.href = "/auth/verify-phone";
+          success("Registration complete!", "You can now log in to your account");
+          window.location.href = "/login";
         }, 1500);
       } else if (response.success) {
         // Legacy handling for expected API structure
@@ -264,9 +267,10 @@ function SignUpContent() {
         // Store email for subsequent steps
         sessionStorage.setItem('registrationEmail', formData.email);
         
-        // Continue registration flow - redirect to phone verification
+        // Continue registration flow - show success message
         setTimeout(() => {
-          window.location.href = "/auth/verify-phone";
+          success("Registration complete!", "You can now log in to your account");
+          window.location.href = "/login";
         }, 1500);
       } else {
         // Check if this is an "already verified" response with success: false
@@ -279,9 +283,10 @@ function SignUpContent() {
           // Store email for subsequent steps
           sessionStorage.setItem('registrationEmail', formData.email);
           
-          // Continue registration flow - redirect to phone verification
+          // Continue registration flow - show success message
           setTimeout(() => {
-            window.location.href = "/auth/verify-phone";
+            success("Registration complete!", "You can now log in to your account");
+            window.location.href = "/login";
           }, 1500);
         } else {
           error("Verification failed", response.message || "Please try again");
@@ -342,9 +347,10 @@ function SignUpContent() {
           // Store email for subsequent steps
           sessionStorage.setItem('registrationEmail', formData.email);
           
-          // Continue registration flow - redirect to phone verification
+          // Continue registration flow - show success message
           setTimeout(() => {
-            window.location.href = "/auth/verify-phone";
+            success("Registration complete!", "You can now log in to your account");
+            window.location.href = "/login";
           }, 1500);
         } else {
           error("Failed to resend code", response.message || "Please try again");

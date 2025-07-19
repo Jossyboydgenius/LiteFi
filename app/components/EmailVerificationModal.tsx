@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,10 +30,30 @@ export default function EmailVerificationModal({
   isLoading
 }: EmailVerificationModalProps) {
   const [otp, setOtp] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const [canResend, setCanResend] = useState(true);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    } else if (countdown === 0 && !canResend) {
+      setCanResend(true);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown, canResend]);
 
   const handleVerify = async () => {
     if (otp.trim()) {
       await onVerifyAction(otp);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (canResend && !isLoading) {
+      setCanResend(false);
+      setCountdown(60);
+      await onResendOtpAction();
     }
   };
 
@@ -68,11 +88,11 @@ export default function EmailVerificationModal({
             </Button>
             <Button 
               variant="outline" 
-              onClick={onResendOtpAction}
-              disabled={isLoading}
+              onClick={handleResendOtp}
+              disabled={isLoading || !canResend}
               className="w-full"
             >
-              Resend Code
+              {!canResend ? `Resend Code (${countdown}s)` : 'Resend Code'}
             </Button>
             <Button 
               variant="ghost" 
