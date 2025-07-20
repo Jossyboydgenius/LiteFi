@@ -225,7 +225,7 @@ export async function resendOtp(data: {
 // Loan application interfaces
 export interface LoanApplication {
   id: string;
-  type: string;
+  loanType: string;
   status: string;
   loanAmount: number;
   tenure: number;

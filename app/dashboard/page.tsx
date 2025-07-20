@@ -188,34 +188,36 @@ export default function Dashboard() {
           <div className="space-y-6">
             {/* Loan Applications Table Skeleton */}
             <div className="mb-12">
-              <Skeleton className="h-8 w-64 mb-6 mx-auto" />
+              <div className="flex justify-center mb-6">
+                <Skeleton className="h-8 w-64 bg-gray-200 animate-pulse" />
+              </div>
               <Card>
                 <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                  <Skeleton className="h-4 w-64" />
+                  <Skeleton className="h-6 w-32 bg-gray-200 animate-pulse mb-2" />
+                  <Skeleton className="h-4 w-64 bg-gray-200 animate-pulse" />
                 </CardHeader>
                 <CardContent>
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead><Skeleton className="h-4 w-24" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-24 bg-gray-200 animate-pulse" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-20 bg-gray-200 animate-pulse" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-16 bg-gray-200 animate-pulse" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-16 bg-gray-200 animate-pulse" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-20 bg-gray-200 animate-pulse" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-16 bg-gray-200 animate-pulse" /></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {Array.from({ length: 3 }).map((_, index) => (
                           <TableRow key={index}>
-                            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-8 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-16 bg-gray-200 animate-pulse" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-32 bg-gray-200 animate-pulse" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20 bg-gray-200 animate-pulse" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-16 bg-gray-200 animate-pulse rounded-full" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20 bg-gray-200 animate-pulse" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-16 bg-gray-200 animate-pulse rounded" /></TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -226,15 +228,32 @@ export default function Dashboard() {
             </div>
             
             {/* Loan Type Selection Skeleton */}
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-64 mx-auto" />
-              <Skeleton className="h-4 w-96 mx-auto" />
+            <div className="space-y-4 text-center">
+              <Skeleton className="h-8 w-64 bg-gray-200 animate-pulse mx-auto" />
+              <Skeleton className="h-4 w-96 bg-gray-200 animate-pulse mx-auto" />
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Card key={index} className="animate-pulse">
+                  <CardHeader>
+                    <div className="flex items-center space-x-4">
+                      <Skeleton className="h-12 w-12 bg-gray-200 rounded-lg" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-5 w-3/4 bg-gray-200" />
+                        <Skeleton className="h-4 w-full bg-gray-200" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 mb-4">
+                      <Skeleton className="h-4 w-full bg-gray-200" />
+                      <Skeleton className="h-4 w-full bg-gray-200" />
+                      <Skeleton className="h-4 w-3/4 bg-gray-200" />
+                    </div>
+                    <Skeleton className="h-10 w-full bg-gray-200 rounded" />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         )}
@@ -287,7 +306,7 @@ export default function Dashboard() {
                     {appliedLoans.map((loan) => (
                       <TableRow key={loan.id}>
                         <TableCell className="font-medium">{loan.id}</TableCell>
-                        <TableCell>{formatLoanType(loan.type)}</TableCell>
+                        <TableCell>{formatLoanType(loan.loanType)}</TableCell>
                         <TableCell>{formatCurrency(loan.loanAmount)}</TableCell>
                         <TableCell>{getStatusBadge(loan.status)}</TableCell>
                         <TableCell>{new Date(loan.createdAt).toLocaleDateString()}</TableCell>
@@ -368,7 +387,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Loan Type</p>
-                    <p className="text-sm font-semibold">{selectedLoan.type ? formatLoanType(selectedLoan.type) : 'Not specified'}</p>
+                    <p className="text-sm font-semibold">{selectedLoan.loanType ? formatLoanType(selectedLoan.loanType) : 'Not specified'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Requested Amount</p>

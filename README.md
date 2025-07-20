@@ -96,6 +96,55 @@ npm run start
 pnpm start
 ```
 
+## Deployment
+
+### Environment Variables
+
+Copy `.env.example` to `.env.local` and configure the required environment variables:
+
+```bash
+cp .env.example .env.local
+```
+
+Required environment variables:
+- `DATABASE_URL`: Database connection string
+- `JWT_SECRET`: Secret key for JWT token generation
+- `ZEPTOMAIL_API_KEY`: ZeptoMail API key for email services
+- `ZEPTOMAIL_DOMAIN`: Your domain for email services
+
+### Vercel Deployment
+
+This project is optimized for Vercel deployment with the following configurations:
+
+1. **Automatic Prisma Generation**: The build process automatically generates Prisma client
+2. **Build Command**: `prisma generate && next build`
+3. **Postinstall Script**: Ensures Prisma client is generated after dependency installation
+
+### Deployment Fixes Applied
+
+The following fixes have been implemented to resolve deployment issues:
+
+1. **Added Prisma Generation**: 
+   - Updated `package.json` scripts to include `prisma generate` in build process
+   - Added `postinstall` script for automatic client generation
+
+2. **Vercel Configuration**: 
+   - Created `vercel.json` with proper build settings
+   - Configured function timeouts and environment variables
+
+3. **Prisma Schema Updates**:
+   - Fixed DocumentType enum to include all required values
+   - Ensured all referenced enums are properly defined
+
+### Troubleshooting Deployment
+
+If you encounter "Cannot find module './prisma/client/default'" error:
+
+1. Ensure `prisma generate` is included in your build command
+2. Verify all environment variables are properly set
+3. Check that the Prisma schema is valid and all enums are defined
+4. For Vercel, ensure the `vercel.json` configuration is present
+
 ## Project Structure
 
 ```
