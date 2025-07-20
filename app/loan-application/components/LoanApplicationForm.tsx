@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import logoImage from "@/public/assets/images/logo.png";
+import { Toaster } from "@/components/ui/sonner";
 
 
 
@@ -133,7 +134,12 @@ const LoanApplicationForm: React.FC<LoanApplicationFormProps> = ({ loanType }) =
     }
   };
 
-  return renderLoanForm();
+  return (
+    <>
+      {renderLoanForm()}
+      <Toaster />
+    </>
+  );
 };
 
 export default LoanApplicationForm;
