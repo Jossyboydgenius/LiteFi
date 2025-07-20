@@ -368,7 +368,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Loan Type</p>
-                    <p className="text-sm font-semibold">{formatLoanType(selectedLoan.type)}</p>
+                    <p className="text-sm font-semibold">{selectedLoan.type ? formatLoanType(selectedLoan.type) : 'Not specified'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Requested Amount</p>
@@ -384,7 +384,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Tenure</p>
-                    <p className="text-sm font-semibold">{selectedLoan.tenure} months</p>
+                    <p className="text-sm font-semibold">{selectedLoan.tenure ? `${selectedLoan.tenure} months` : 'Not specified'}</p>
                   </div>
                   {selectedLoan.approvedAmount && (
                     <div>
@@ -392,12 +392,10 @@ export default function Dashboard() {
                       <p className="text-sm font-semibold text-green-600">{formatCurrency(selectedLoan.approvedAmount)}</p>
                     </div>
                   )}
-                  {selectedLoan.interestRate && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Interest Rate</p>
-                      <p className="text-sm font-semibold">{selectedLoan.interestRate}%</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Purpose</p>
+                    <p className="text-sm font-semibold">{selectedLoan.purpose || 'Personal use'}</p>
+                  </div>
                   {selectedLoan.loanId && (
                     <div className="col-span-2">
                       <p className="text-sm font-medium text-gray-500">Loan ID</p>
@@ -410,12 +408,10 @@ export default function Dashboard() {
                       <p className="text-sm text-red-600">{selectedLoan.rejectionReason}</p>
                     </div>
                   )}
-                  {selectedLoan.purpose && (
-                    <div className="col-span-2">
-                      <p className="text-sm font-medium text-gray-500">Purpose</p>
-                      <p className="text-sm">{selectedLoan.purpose}</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Repayment Term</p>
+                    <p className="text-sm font-semibold">{selectedLoan.tenure ? `${selectedLoan.tenure} months` : 'Not specified'}</p>
+                  </div>
                 </div>
               </div>
             )}

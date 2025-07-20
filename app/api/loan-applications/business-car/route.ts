@@ -6,8 +6,13 @@ import { nanoid } from 'nanoid';
 
 const businessCarLoanSchema = z.object({
   loanAmount: z.number().positive('Loan amount must be positive'),
+  tenure: z.number().positive('Tenure must be positive'),
   
   // Personal Information
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  middleName: z.string().optional(),
+  email: z.string().email('Valid email is required'),
   phoneNumber: z.string().min(1, 'Phone number is required'),
   bvn: z.string().min(1, 'BVN is required'),
   nin: z.string().optional(),
@@ -26,6 +31,7 @@ const businessCarLoanSchema = z.object({
   businessDescription: z.string().min(1, 'Business description is required'),
   industry: z.string().min(1, 'Industry is required'),
   businessAddress: z.string().min(1, 'Business address is required'),
+  workEmail: z.string().email('Valid work email is required'),
   
   // Vehicle Information (required for car loans)
   vehicleMake: z.string().min(1, 'Vehicle make is required'),
@@ -95,7 +101,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the creation action
-    await prisma.loanApplicationLog.create({
+    await prisma.LoanApplicationLog.create({
       data: {
         loanApplicationId: loanApplication.id,
         action: 'CREATED',

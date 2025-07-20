@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { getUserFromRequest } from '@/lib/jwt';
 import { z } from 'zod';
+import { PrismaClient } from '@prisma/client';
 import { nanoid } from 'nanoid';
+import jwt from 'jsonwebtoken';
 
+const prisma = new PrismaClient();
+
+// Schema for loan application validation
 const loanApplicationSchema = z.object({
-  loanType: z.enum(['BUSINESS_CASH', 'SALARY_CASH', 'BUSINESS_CAR', 'SALARY_CAR']),
   loanAmount: z.number().positive('Amount must be positive'),
   tenure: z.number().positive('Tenure must be positive'),
   
@@ -62,52 +64,55 @@ const loanApplicationSchema = z.object({
   accountNumber: z.string().min(1, 'Account number is required'),
 });
 
-// GET - Fetch user's loan applications
-export async function GET(request: NextRequest) {
+// Map loan type from URL to database enum
+const mapLoanType = (type: string) => {
+  const typeMap: Record<string, string> = {
+    'salary-cash': 'SALARY_CASH',
+    'salary-car': 'SALARY_CAR',
+    'business-cash': 'BUSINESS_CASH',
+    'business-car': 'BUSINESS_CAR',
+  };
+  return typeMap[type];
+};
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { type: string } }
+) {
   try {
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const loanApplications = await prisma.loanApplication.findMany({
-      where: { userId: user.userId },
-      include: {
-        documents: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return NextResponse.json({
-      success: true,
-      applications: loanApplications,
-    });
-  } catch (error) {
-    console.error('Fetch loan applications error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-// POST - Create new loan application
-export async function POST(request: NextRequest) {
-  try {
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
+    const { type } = params;
+    const loanType = mapLoanType(type);
     
-    // Validate input
+    if (!loanType) {
+      return NextResponse.json(
+        { error: 'Invalid loan type' },
+        { status: 400 }
+      );
+    }
+
+    // Get authorization token
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authorization token required' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    let user;
+    
+    try {
+      user = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+
+    // Parse and validate request body
+    const body = await request.json();
     const validatedData = loanApplicationSchema.parse(body);
 
     // Generate unique application ID
@@ -115,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     // Map frontend field names to database field names
     const mappedData = {
-      loanType: validatedData.loanType,
+      loanType: loanType as any,
       loanAmount: validatedData.loanAmount,
       tenure: validatedData.tenure,
       
@@ -188,21 +193,35 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Log the application creation
+    await prisma.loanApplicationLog.create({
+      data: {
+        loanApplicationId: loanApplication.id,
+        action: 'CREATED',
+        details: `Loan application ${applicationId} created for ${loanType}`,
+      },
+    });
+
     return NextResponse.json({
       success: true,
       applicationId: loanApplication.applicationId,
       loanApplication,
       message: 'Loan application submitted successfully',
     }, { status: 201 });
+
   } catch (error) {
+    console.error('Error creating loan application:', error);
+    
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
+        { 
+          error: 'Validation failed', 
+          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        },
         { status: 400 }
       );
     }
 
-    console.error('Create loan application error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

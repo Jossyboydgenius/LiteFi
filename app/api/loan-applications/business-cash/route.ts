@@ -6,8 +6,13 @@ import { nanoid } from 'nanoid';
 
 const businessCashLoanSchema = z.object({
   loanAmount: z.number().positive('Loan amount must be positive'),
+  tenure: z.number().positive('Tenure must be positive'),
   
   // Personal Information
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  middleName: z.string().optional(),
+  email: z.string().email('Valid email is required'),
   phoneNumber: z.string().min(1, 'Phone number is required'),
   bvn: z.string().min(1, 'BVN is required'),
   nin: z.string().optional(),
@@ -26,6 +31,7 @@ const businessCashLoanSchema = z.object({
   businessDescription: z.string().min(1, 'Business description is required'),
   industry: z.string().min(1, 'Industry is required'),
   businessAddress: z.string().min(1, 'Business address is required'),
+  workEmail: z.string().email('Valid work email is required'),
   
   // Next of Kin
   nokFirstName: z.string().min(1, 'Next of kin first name is required'),
