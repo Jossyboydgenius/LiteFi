@@ -36,7 +36,29 @@ export interface RegisterResponse {
   message?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+// Dynamic API base URL detection for all environments
+function getApiBaseUrl(): string {
+  // Client-side: use current origin to avoid CORS
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  
+  // Server-side: detect environment
+  // Vercel
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  
+  // Netlify
+  if (process.env.DEPLOY_PRIME_URL) {
+    return process.env.DEPLOY_PRIME_URL;
+  }
+  
+  // Fallback to env var or localhost
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 export async function login(credentials: { email: string; password: string }): Promise<LoginResponse> {
   try {
