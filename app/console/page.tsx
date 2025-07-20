@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { nanoid } from 'nanoid';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+
+// Import logo
+import logoImage from '@/public/assets/images/logo.png';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,10 +45,10 @@ interface LoanApplication {
 
 const generateId = () => nanoid(10);
 
-const mockApplications: LoanApplication[] = [
+// Initial mock data without generated IDs to prevent hydration mismatch
+const initialMockApplications: Omit<LoanApplication, 'applicationId' | 'loanId'>[] = [
   {
     id: '1',
-    applicationId: generateId(),
     type: 'personal',
     applicantName: 'John Smith',
     email: 'john.smith@email.com',
@@ -61,8 +66,6 @@ const mockApplications: LoanApplication[] = [
   },
   {
     id: '2',
-    applicationId: generateId(),
-    loanId: generateId(),
     type: 'auto',
     applicantName: 'Sarah Johnson',
     email: 'sarah.j@email.com',
@@ -83,7 +86,6 @@ const mockApplications: LoanApplication[] = [
   },
   {
     id: '3',
-    applicationId: generateId(),
     type: 'business',
     applicantName: 'Michael Adebayo',
     email: 'michael.adebayo@business.com',
@@ -103,7 +105,8 @@ const mockApplications: LoanApplication[] = [
 ];
 
 export default function AdminDashboard() {
-  const [applications, setApplications] = useState<LoanApplication[]>(mockApplications);
+  const router = useRouter();
+  const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [selectedApplication, setSelectedApplication] = useState<LoanApplication | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
@@ -111,7 +114,24 @@ export default function AdminDashboard() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false); // Added state for approve modal
   const [approvalApplication, setApprovalApplication] = useState<LoanApplication | null>(null); // Added state for application being approved
+  const [user, setUser] = useState<any>(null);
   const { toast } = useToast();
+
+  // Initialize applications with generated IDs on client side only
+  useEffect(() => {
+    const mockApplications: LoanApplication[] = initialMockApplications.map(app => ({
+      ...app,
+      applicationId: generateId(),
+      loanId: app.id === '2' ? generateId() : undefined // Only approved application has loanId
+    }));
+    setApplications(mockApplications);
+
+    // Initialize user data
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   const filteredApplications = applications.filter(app => {
     const matchesStatus = filterStatus === 'all' || app.status === filterStatus;
@@ -311,9 +331,41 @@ ${app.notes ? `Notes: ${app.notes}` : ''}
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Image 
+              src={logoImage} 
+              alt="LiteFi Logo" 
+              width={100}
+              height={30}
+            />
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-600">
+                Welcome back{user ? `, ${user.firstName || user.name || 'Admin'}` : ''}!
+              </span>
+              <Button 
+                 variant="outline" 
+                 size="sm"
+                 onClick={async () => {
+                   const { clearAuth } = await import('@/lib/auth');
+                   clearAuth();
+                   router.push('/login');
+                 }}
+                 className="text-red-600 border-red-600 hover:bg-red-50"
+               >
+                 Logout
+               </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Page Header */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Console Dashboard</h1>

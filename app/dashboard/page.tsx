@@ -7,32 +7,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import logoImage from "@/public/assets/images/logo.png";
 import { Car, DollarSign, Building2, UserCheck, Eye, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getUserLoanApplications, LoanApplication } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 
-interface LoanApplication {
-  id: string;
-  loanType: string;
-  amount: string;
-  status: string;
-  appliedDate: string;
-  expectedResponse: string;
-  applicantName?: string;
-  phoneNumber?: string;
-  email?: string;
-  employmentStatus?: string;
-  monthlyIncome?: string;
-  loanPurpose?: string;
-  repaymentTerm?: string;
-  interestRate?: string;
-}
+// Remove local interface since we're importing from lib/api
+// interface LoanApplication is now imported from @/lib/api
 
 export default function Dashboard() {
   const router = useRouter();
   const [appliedLoans, setAppliedLoans] = useState<LoanApplication[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<LoanApplication | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  // Removed showLoanForm and selectedLoanType states as we're using navigation
   
   const loanTypes = [
     {
@@ -65,68 +58,50 @@ export default function Dashboard() {
     }
   ];
 
-  // Sample loan applications data - in real app, this would come from API
-  const sampleAppliedLoans: LoanApplication[] = [
-    {
-      id: "LA001",
-      loanType: "Salary Earner Cash Loan",
-      amount: "₦500,000",
-      status: "Under Review",
-      appliedDate: "2025-01-15",
-      expectedResponse: "2025-01-20",
-      applicantName: "John Doe",
-      phoneNumber: "+234 801 234 5678",
-      email: "john.doe@example.com",
-      employmentStatus: "Full-time Employee",
-      monthlyIncome: "₦150,000",
-      loanPurpose: "Personal use",
-      repaymentTerm: "12 months",
-      interestRate: "15% p.a."
-    },
-    {
-      id: "LA002",
-      loanType: "Business Cash Loan",
-      amount: "₦2,000,000",
-      status: "Approved",
-      appliedDate: "2025-01-10",
-      expectedResponse: "2025-01-18",
-      applicantName: "Jane Smith",
-      phoneNumber: "+234 802 345 6789",
-      email: "jane.smith@company.com",
-      employmentStatus: "Business Owner",
-      monthlyIncome: "₦400,000",
-      loanPurpose: "Business expansion",
-      repaymentTerm: "24 months",
-      interestRate: "12% p.a."
-    },
-    {
-      id: "LA003",
-      loanType: "Salary Earner Car Loan",
-      amount: "₦800,000",
-      status: "Pending Documents",
-      appliedDate: "2025-01-12",
-      expectedResponse: "2025-01-22",
-      applicantName: "Mike Johnson",
-      phoneNumber: "+234 803 456 7890",
-      email: "mike.johnson@example.com",
-      employmentStatus: "Full-time Employee",
-      monthlyIncome: "₦200,000",
-      loanPurpose: "Vehicle purchase",
-      repaymentTerm: "36 months",
-      interestRate: "18% p.a."
-    }
-  ];
+
 
   useEffect(() => {
-    // Load applied loans from localStorage or API
-    const savedLoans = localStorage.getItem('appliedLoans');
-    if (savedLoans) {
-      setAppliedLoans(JSON.parse(savedLoans));
-    } else {
-      // Use sample data for demonstration
-      setAppliedLoans(sampleAppliedLoans);
-    }
-  }, []);
+    const initializeDashboard = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Get user data from localStorage (middleware handles authentication via cookies)
+        const userData = localStorage.getItem('user') || localStorage.getItem('userData');
+        if (userData) {
+          setUser(JSON.parse(userData));
+        }
+        
+        // Fetch loan applications from API
+        const response = await getUserLoanApplications();
+        
+        if (response.success && response.applications) {
+          setAppliedLoans(response.applications);
+        } else if (response.error) {
+          // Don't redirect on API errors - let middleware handle authentication
+          // Just show the error to the user
+          setError(response.error);
+          toast({
+            title: "Error",
+            description: response.error,
+            variant: "destructive"
+          });
+        }
+      } catch (err) {
+        console.error('Dashboard initialization error:', err);
+        setError('Failed to load dashboard data');
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    initializeDashboard();
+  }, [router]);
 
   const handleViewLoan = (loan: LoanApplication) => {
     setSelectedLoan(loan);
@@ -134,23 +109,43 @@ export default function Dashboard() {
   };
 
   const handleLoanSelect = (loanId: string) => {
-    // Route to the specific loan application form
     router.push(`/loan-application/${loanId}`);
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Approved":
+    switch (status.toUpperCase()) {
+      case "APPROVED":
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-      case "Under Review":
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Under Review</Badge>;
-      case "Pending Documents":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Pending Documents</Badge>;
-      case "Rejected":
+      case "PENDING":
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
+      case "REJECTED":
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Rejected</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">{status}</Badge>;
     }
+  };
+
+  const formatLoanType = (type: string) => {
+    switch (type) {
+      case "SALARY_CASH":
+        return "Salary Earner Cash Loan";
+      case "SALARY_CAR":
+        return "Salary Earner Car Loan";
+      case "BUSINESS_CASH":
+        return "Business Cash Loan";
+      case "BUSINESS_CAR":
+        return "Business Car Loan";
+      default:
+        return type;
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0
+    }).format(amount);
   };
 
   return (
@@ -166,12 +161,19 @@ export default function Dashboard() {
               height={30}
             />
             <div className="flex items-center space-x-4">
-              <span className="text-gray-600">Welcome back!</span>
-              <Button variant="outline" onClick={() => {
-                localStorage.removeItem('token');
-                localStorage.removeItem('userId');
-                window.location.href = '/';
-              }}>
+              <span className="text-gray-600">
+                Welcome back{user ? `, ${user.firstName || user.name || 'User'}` : ''}!
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  const { clearAuth } = await import('@/lib/auth');
+                  clearAuth();
+                  router.push('/login');
+                }}
+                className="text-red-600 border-red-600 hover:bg-red-50"
+              >
                 Logout
               </Button>
             </div>
@@ -181,14 +183,93 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Applied Loans Table */}
-        {appliedLoans.length > 0 && (
+        {/* Loading State */}
+        {loading && (
+          <div className="space-y-6">
+            {/* Loan Applications Table Skeleton */}
+            <div className="mb-12">
+              <Skeleton className="h-8 w-64 mb-6 mx-auto" />
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-64" />
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead><Skeleton className="h-4 w-24" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                          <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <TableRow key={index}>
+                            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-16" /></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Loan Type Selection Skeleton */}
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-64 mx-auto" />
+              <Skeleton className="h-4 w-96 mx-auto" />
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="mb-8">
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center text-red-600">
+                  <X className="h-5 w-5 mr-2" />
+                  <span>{error}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Applied Loans Table - Show first when user has loans */}
+        {!loading && appliedLoans.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Loan Applications</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+              {appliedLoans.length === 1 ? 'Your Loan Application' : 'Your Loan Applications'}
+            </h2>
             <Card>
               <CardHeader>
-                <CardTitle>Applied Loans</CardTitle>
-                <CardDescription>Track the status of your loan applications</CardDescription>
+                <CardTitle>
+                  {appliedLoans.length === 1 ? 'Applied Loan' : 'Applied Loans'}
+                </CardTitle>
+                <CardDescription>
+                  {appliedLoans.length === 1 
+                    ? 'Track the status of your loan application' 
+                    : 'Track the status of your loan applications'
+                  }
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -199,7 +280,6 @@ export default function Dashboard() {
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Applied Date</TableHead>
-                      <TableHead>Expected Response</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -207,11 +287,10 @@ export default function Dashboard() {
                     {appliedLoans.map((loan) => (
                       <TableRow key={loan.id}>
                         <TableCell className="font-medium">{loan.id}</TableCell>
-                        <TableCell>{loan.loanType}</TableCell>
-                        <TableCell>{loan.amount}</TableCell>
+                        <TableCell>{formatLoanType(loan.type)}</TableCell>
+                        <TableCell>{formatCurrency(loan.loanAmount)}</TableCell>
                         <TableCell>{getStatusBadge(loan.status)}</TableCell>
-                        <TableCell>{new Date(loan.appliedDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{new Date(loan.expectedResponse).toLocaleDateString()}</TableCell>
+                        <TableCell>{new Date(loan.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Button variant="outline" size="sm" onClick={() => handleViewLoan(loan)}>
                             <Eye className="h-4 w-4 mr-1" />
@@ -227,49 +306,56 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Choose Your Loan Type</h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Select the loan product that best fits your needs. Each loan type has been designed 
-            with specific requirements and benefits tailored to different customer profiles.
-          </p>
-        </div>
+        {/* Loan Type Selection - Only show when not loading */}
+        {!loading && (
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Choose Your Loan Type</h1>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Select the loan product that best fits your needs. Each loan type has been designed 
+              with specific requirements and benefits tailored to different customer profiles.
+            </p>
+          </div>
+        )}
 
-        {/* Loan Type Cards */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {loanTypes.map((loan) => (
-            <Card key={loan.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleLoanSelect(loan.id)}>
-              <CardHeader>
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-red-50 rounded-lg">
-                    {loan.icon}
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{loan.title}</CardTitle>
-                    <CardDescription className="mt-1">{loan.description}</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {loan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center text-sm text-gray-600">
-                      <div className="w-2 h-2 bg-red-600 rounded-full mr-3"></div>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Button className="w-full mt-4 bg-red-600 hover:bg-red-700">
-                  Apply for This Loan
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+         {/* Loan Type Cards */}
+         {!loading && (
+           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+             {loanTypes.map((loan) => (
+               <Card key={loan.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleLoanSelect(loan.id)}>
+                 <CardHeader>
+                   <div className="flex items-center space-x-4">
+                     <div className="p-3 bg-red-50 rounded-lg">
+                       {loan.icon}
+                     </div>
+                     <div>
+                       <CardTitle className="text-lg">{loan.title}</CardTitle>
+                       <CardDescription className="mt-1">{loan.description}</CardDescription>
+                     </div>
+                   </div>
+                 </CardHeader>
+                 <CardContent>
+                   <ul className="space-y-2">
+                     {loan.features.map((feature, index) => (
+                       <li key={index} className="flex items-center text-sm text-gray-600">
+                         <div className="w-2 h-2 bg-red-600 rounded-full mr-3"></div>
+                         {feature}
+                       </li>
+                     ))}
+                   </ul>
+                   <Button className="w-full mt-4 bg-red-600 hover:bg-red-700">
+                     Apply for This Loan
+                   </Button>
+                 </CardContent>
+               </Card>
+             ))}
+           </div>
+         )}
+
+
 
         {/* Loan Details Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Loan Application Details</DialogTitle>
             </DialogHeader>
@@ -282,11 +368,11 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Loan Type</p>
-                    <p className="text-sm font-semibold">{selectedLoan.loanType}</p>
+                    <p className="text-sm font-semibold">{formatLoanType(selectedLoan.type)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Amount</p>
-                    <p className="text-sm font-semibold">{selectedLoan.amount}</p>
+                    <p className="text-sm font-medium text-gray-500">Requested Amount</p>
+                    <p className="text-sm font-semibold">{formatCurrency(selectedLoan.loanAmount)}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Status</p>
@@ -294,15 +380,43 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Applied Date</p>
-                    <p className="text-sm font-semibold">{new Date(selectedLoan.appliedDate).toLocaleDateString()}</p>
+                    <p className="text-sm font-semibold">{new Date(selectedLoan.createdAt).toLocaleDateString()}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Expected Response</p>
-                    <p className="text-sm font-semibold">{new Date(selectedLoan.expectedResponse).toLocaleDateString()}</p>
+                    <p className="text-sm font-medium text-gray-500">Tenure</p>
+                    <p className="text-sm font-semibold">{selectedLoan.tenure} months</p>
                   </div>
+                  {selectedLoan.approvedAmount && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Approved Amount</p>
+                      <p className="text-sm font-semibold text-green-600">{formatCurrency(selectedLoan.approvedAmount)}</p>
+                    </div>
+                  )}
+                  {selectedLoan.interestRate && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Interest Rate</p>
+                      <p className="text-sm font-semibold">{selectedLoan.interestRate}%</p>
+                    </div>
+                  )}
+                  {selectedLoan.loanId && (
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium text-gray-500">Loan ID</p>
+                      <p className="text-sm font-semibold text-green-600">{selectedLoan.loanId}</p>
+                    </div>
+                  )}
+                  {selectedLoan.rejectionReason && (
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium text-gray-500">Rejection Reason</p>
+                      <p className="text-sm text-red-600">{selectedLoan.rejectionReason}</p>
+                    </div>
+                  )}
+                  {selectedLoan.purpose && (
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium text-gray-500">Purpose</p>
+                      <p className="text-sm">{selectedLoan.purpose}</p>
+                    </div>
+                  )}
                 </div>
-                
-
               </div>
             )}
           </DialogContent>
@@ -335,6 +449,25 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Empty State for Loan Applications - Show when no loans */}
+        {!loading && appliedLoans.length === 0 && (
+          <div className="mt-12 mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Your Loan Applications</h2>
+            <Card className="max-w-4xl mx-auto">
+              <CardHeader>
+                <CardTitle>Applied Loans</CardTitle>
+                <CardDescription>Track the status of your loan applications</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-4">No loan applications found</p>
+                  <p className="text-sm text-gray-400">Apply for a loan above to get started</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   );

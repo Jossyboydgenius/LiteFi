@@ -27,8 +27,23 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Protect dashboard and console routes
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/console')) {
+  // Define public routes that don't require authentication
+  const publicRoutes = [
+    '/',
+    '/login',
+    '/signup',
+    '/forgot-password',
+    '/reset-password',
+    '/verify-email',
+  ];
+
+  // Check if current path is a public route
+  const isPublicRoute = publicRoutes.some(route => 
+    pathname === route || pathname.startsWith(route + '/')
+  );
+
+  // Protect all routes except public ones
+  if (!isPublicRoute) {
     try {
       const user = await getUserFromRequest(request);
       if (!user) {
@@ -52,5 +67,7 @@ export const config = {
     '/api/:path*',
     '/dashboard/:path*',
     '/console/:path*',
+    '/loan-application/:path*',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

@@ -60,7 +60,7 @@ const loanApplicationSchema = z.object({
 // GET - Fetch user's loan applications
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      loanApplications,
+      applications: loanApplications,
     });
   } catch (error) {
     console.error('Fetch loan applications error:', error);
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
 // POST - Create new loan application
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
