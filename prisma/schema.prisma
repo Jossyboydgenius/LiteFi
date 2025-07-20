@@ -165,8 +165,9 @@ enum DocumentType {
   UTILITY_BILL     @map("utility_bill")
   WORK_ID          @map("work_id")
   CAC_CERTIFICATE  @map("cac_certificate")
-  CAC_2_7          @map("cac_2_7")
+  CAC_DOCUMENTS    @map("cac_documents")
   SELFIE           @map("selfie")
+  OTHER            @map("other")
 }
 
 model OtpVerification {

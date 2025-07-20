@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the creation action
-    await prisma.LoanApplicationLog.create({
+    await prisma.loanApplicationLog.create({
       data: {
         loanApplicationId: loanApplication.id,
         action: 'CREATED',
