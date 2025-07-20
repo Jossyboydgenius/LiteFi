@@ -46,6 +46,7 @@ export async function login(credentials: { email: string; password: string }): P
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
+      credentials: 'include' // Include cookies in the request
     });
 
     const data = await response.json();
@@ -87,6 +88,7 @@ export async function register(userData: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(userData),
+      credentials: 'include' // Include cookies in the request
     });
 
     const data = await response.json();
@@ -125,6 +127,7 @@ export async function verifyEmail(data: { email: string; code: string }): Promis
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -148,6 +151,7 @@ export async function requestPasswordReset(data: { email: string }): Promise<{ s
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -175,6 +179,7 @@ export async function confirmPasswordReset(data: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -201,6 +206,7 @@ export async function resendOtp(data: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -216,20 +222,76 @@ export async function resendOtp(data: {
   }
 }
 
-// Loan application functions
-export async function submitLoanApplication(data: any, token: string) {
+// Loan application interfaces
+export interface LoanApplication {
+  id: string;
+  type: string;
+  status: string;
+  loanAmount: number;
+  tenure: number;
+  purpose?: string;
+  createdAt: string;
+  updatedAt: string;
+  approvedAmount?: number;
+  interestRate?: number;
+  approvedTenure?: number;
+  rejectionReason?: string;
+  loanId?: string;
+  personalInfo?: any;
+  employmentInfo?: any;
+  financialInfo?: any;
+  businessInfo?: any;
+  carInfo?: any;
+  documents?: any;
+}
+
+export interface LoanApplicationsResponse {
+  success: boolean;
+  applications?: LoanApplication[];
+  error?: string;
+  message?: string;
+}
+
+// Helper function to get auth token
+function getAuthToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+}
+
+// API request helper with authentication
+async function apiRequest(url: string, options: RequestInit = {}): Promise<any> {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options.headers
+  };
+
   try {
-    const response = await fetch(`${API_BASE_URL}/api/loan-applications`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      ...options,
+      headers,
+      credentials: 'include' // Include cookies in the request
     });
 
-    return await response.json();
-  } catch (error) {
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw {
+        response: {
+          status: response.status,
+          data: data
+        }
+      };
+    }
+    
+    return data;
+  } catch (error: any) {
+    if (error.response) {
+      throw error;
+    }
     return {
       success: false,
       error: 'Network error. Please try again.',
@@ -237,8 +299,53 @@ export async function submitLoanApplication(data: any, token: string) {
   }
 }
 
-export async function uploadDocument(file: File, documentType: string, loanApplicationId?: string, token?: string) {
+// Loan application functions
+export async function getUserLoanApplications(): Promise<LoanApplicationsResponse> {
   try {
+    return await apiRequest('/api/loan-applications');
+  } catch (error: any) {
+    if (error.response?.status === 401) {
+      return {
+        success: false,
+        error: 'Authentication required. Please login again.'
+      };
+    }
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to fetch loan applications'
+    };
+  }
+}
+
+export async function submitLoanApplication(data: any, loanType?: string): Promise<any> {
+  try {
+    const endpoint = loanType ? `/api/loan-applications/${loanType}` : '/api/loan-applications';
+    return await apiRequest(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to submit loan application'
+    };
+  }
+}
+
+export async function getLoanApplicationByType(type: string): Promise<any> {
+  try {
+    return await apiRequest(`/api/loan-applications/${type}`);
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to fetch loan application'
+    };
+  }
+}
+
+export async function uploadDocument(file: File, documentType: string, loanApplicationId?: string): Promise<any> {
+  try {
+    const token = getAuthToken();
     const formData = new FormData();
     formData.append('file', file);
     formData.append('documentType', documentType);
@@ -249,9 +356,10 @@ export async function uploadDocument(file: File, documentType: string, loanAppli
     const response = await fetch(`${API_BASE_URL}/api/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        ...(token && { Authorization: `Bearer ${token}` })
       },
       body: formData,
+      credentials: 'include'
     });
 
     return await response.json();

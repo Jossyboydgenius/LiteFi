@@ -34,6 +34,10 @@ export const setAuthToken = (token: string, userId: string) => {
   if (typeof window !== "undefined") {
     localStorage.setItem("token", token);
     localStorage.setItem("userId", userId);
+    
+    // Set cookie for middleware compatibility
+    const isSecure = window.location.protocol === 'https:';
+    document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=strict${isSecure ? '; secure' : ''}`;
   }
 };
 
@@ -43,6 +47,9 @@ export const clearAuth = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("userData");
+    
+    // Clear auth cookie
+    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
   }
 };
 

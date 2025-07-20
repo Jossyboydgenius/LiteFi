@@ -43,12 +43,15 @@ model LoanApplication {
   status        AppStatus   @default(PENDING)
   
   // Loan Details
-  loanAmount    Decimal?    @map("loan_amount")
-  tenure        Int?
-  vehicleMake   String?     @map("vehicle_make")
-  vehicleModel  String?     @map("vehicle_model")
-  vehicleYear   Int?        @map("vehicle_year")
-  vehicleAmount Decimal?    @map("vehicle_amount")
+  loanAmount      Decimal?    @map("loan_amount")
+  approvedAmount  Decimal?    @map("approved_amount")
+  interestRate    Decimal?    @map("interest_rate")
+  tenure          Int?
+  approvedTenure  Int?        @map("approved_tenure")
+  vehicleMake     String?     @map("vehicle_make")
+  vehicleModel    String?     @map("vehicle_model")
+  vehicleYear     Int?        @map("vehicle_year")
+  vehicleAmount   Decimal?    @map("vehicle_amount")
   
   // Personal Information
   middleName        String? @map("middle_name")
@@ -95,6 +98,9 @@ model LoanApplication {
   approvedById    String?   @map("approved_by")
   rejectedById    String?   @map("rejected_by")
   rejectionReason String?   @map("rejection_reason")
+  reviewedAt      DateTime? @map("reviewed_at")
+  reviewedBy      String?   @map("reviewed_by")
+  notes           String?
   approvedAt      DateTime? @map("approved_at")
   rejectedAt      DateTime? @map("rejected_at")
   
@@ -106,6 +112,7 @@ model LoanApplication {
   approvedBy User?      @relation("ApprovedBy", fields: [approvedById], references: [id])
   rejectedBy User?      @relation("RejectedBy", fields: [rejectedById], references: [id])
   documents  Document[]
+  logs       LoanApplicationLog[]
   
   @@map("loan_applications")
 }
@@ -177,4 +184,27 @@ model OtpVerification {
 enum OtpType {
   EMAIL_VERIFICATION @map("email_verification")
   PASSWORD_RESET     @map("password_reset")
+}
+
+model LoanApplicationLog {
+  id                String      @id @default(nanoid())
+  loanApplicationId String      @map("loan_application_id")
+  action            LogAction
+  performedBy       String      @map("performed_by")
+  notes             String?
+  metadata          Json?
+  createdAt         DateTime    @default(now()) @map("created_at")
+  
+  // Relations
+  application LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+  
+  @@map("loan_application_logs")
+}
+
+enum LogAction {
+  CREATED   @map("created")
+  APPROVED  @map("approved")
+  REJECTED  @map("rejected")
+  UPDATED   @map("updated")
+  VIEWED    @map("viewed")
 }

@@ -5,7 +5,7 @@ import { getUserFromRequest, checkRole } from '@/lib/jwt';
 // GET - Fetch all loan applications (Admin only)
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },

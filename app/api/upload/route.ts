@@ -30,17 +30,27 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const applicationId = formData.get('applicationId') as string;
     const documentType = formData.get('documentType') as string;
-
-    if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
-    }
+    const isOptional = formData.get('isOptional') === 'true';
 
     if (!applicationId) {
       return NextResponse.json(
         { error: 'Application ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // If file upload is optional and no file provided, return success
+    if (!file && isOptional) {
+      return NextResponse.json({
+        success: true,
+        message: 'File upload skipped (optional)',
+        document: null,
+      });
+    }
+
+    if (!file) {
+      return NextResponse.json(
+        { error: 'No file provided' },
         { status: 400 }
       );
     }
