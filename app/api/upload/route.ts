@@ -4,14 +4,43 @@ import { getUserFromRequest } from '@/lib/jwt';
 import { uploadFile } from '@/lib/storage';
 import { z } from 'zod';
 
+// File type validation function
+function validateFileType(mimeType: string, documentType: string): { valid: boolean; message: string } {
+  const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+  const documentTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ];
+  
+  // For selfie, only allow images
+  if (documentType === 'SELFIE') {
+    if (imageTypes.includes(mimeType)) {
+      return { valid: true, message: '' };
+    }
+    return { valid: false, message: 'Selfie must be an image file (JPEG, PNG, WebP)' };
+  }
+  
+  // For other documents, allow both images and document types
+  const allAllowedTypes = [...imageTypes, ...documentTypes];
+  if (allAllowedTypes.includes(mimeType)) {
+    return { valid: true, message: '' };
+  }
+  
+  return { 
+    valid: false, 
+    message: 'Invalid file type. Please upload images (JPEG, PNG, WebP) or documents (PDF, DOC, DOCX)' 
+  };
+}
+
 const uploadSchema = z.object({
-  applicationId: z.string(),
+  applicationId: z.string().optional(),
   documentType: z.enum([
     'GOVERNMENT_ID',
     'UTILITY_BILL',
     'WORK_ID',
     'CAC_CERTIFICATE',
-    'CAC_2_7',
+    'CAC_DOCUMENTS',
     'SELFIE'
   ]),
 });
@@ -32,11 +61,42 @@ export async function POST(request: NextRequest) {
     const documentType = formData.get('documentType') as string;
     const isOptional = formData.get('isOptional') === 'true';
 
+    // For temporary uploads without application ID
     if (!applicationId) {
-      return NextResponse.json(
-        { error: 'Application ID is required' },
-        { status: 400 }
-      );
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json(
+          { error: 'File size must be less than 10MB' },
+          { status: 400 }
+        );
+      }
+
+      // Validate file type based on document type
+      const isValidFileType = validateFileType(file.type, documentType);
+      if (!isValidFileType.valid) {
+        return NextResponse.json(
+          { error: isValidFileType.message },
+          { status: 400 }
+        );
+      }
+
+      // Convert file to buffer
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      // Upload to Google Cloud Storage in temp folder
+      const uploadResult = await uploadFile(buffer, file.name, file.type, 'temp');
+
+      return NextResponse.json({
+        success: true,
+        tempFile: {
+          fileName: file.name,
+          filePath: uploadResult.filePath,
+          fileSize: file.size,
+          mimeType: file.type,
+          documentType
+        },
+        message: 'File uploaded temporarily',
+      }, { status: 201 });
     }
 
     // If file upload is optional and no file provided, return success
@@ -69,19 +129,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    const allowedTypes = [
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
+    // Validate file type based on document type
+    const isValidFileType = validateFileType(file.type, documentType);
+    if (!isValidFileType.valid) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only images, PDF, and Word documents are allowed' },
+        { error: isValidFileType.message },
         { status: 400 }
       );
     }

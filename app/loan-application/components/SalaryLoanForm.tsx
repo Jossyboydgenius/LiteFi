@@ -23,13 +23,22 @@ interface FormData {
 }
 
 interface UploadedDocs {
-  [key: string]: boolean;
+  [key: string]: {
+    file: File;
+    tempFile: {
+      fileName: string;
+      filePath: string;
+      fileSize: number;
+      mimeType: string;
+      documentType: string;
+    };
+  };
 }
 
 export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState<Record<string, string>>({});
-  const [uploadedFiles, setUploadedFiles] = useState<Record<string, File>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedDocs[string] | null>>({});
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
   const [selectedState, setSelectedState] = useState<string>("");
@@ -84,12 +93,12 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       setUploadProgress(prev => ({ ...prev, [docName]: 0 }));
       
       try {
-        // Create FormData for file upload
+        // Create FormData for temporary file upload
         const uploadFormData = new FormData();
         uploadFormData.append('file', file);
         uploadFormData.append('documentType', getDocumentType(docName));
         
-        // Upload file to server
+        // Upload file temporarily to server
         const response = await fetch('/api/upload', {
           method: 'POST',
           headers: {
@@ -105,7 +114,14 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         
         const result = await response.json();
         
-        setUploadedFiles(prev => ({ ...prev, [docName]: file }));
+        // Store both the file and the temporary upload result
+        setUploadedFiles(prev => ({ 
+          ...prev, 
+          [docName]: {
+            file,
+            tempFile: result.tempFile
+          }
+        }));
         setUploadProgress(prev => ({ ...prev, [docName]: 100 }));
         
         setTimeout(() => {
@@ -125,7 +141,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       // Create file input for user to select file
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = docName === 'selfie' ? 'image/*' : 'image/*,.pdf,.doc,.docx,.txt';
+      input.accept = docName === 'selfie' ? 'image/*' : 'image/*,.pdf,.doc,.docx';
       input.onchange = async (e) => {
         const selectedFile = (e.target as HTMLInputElement).files?.[0];
         if (selectedFile) {
@@ -216,16 +232,16 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
        const result = await response.json();
        const applicationId = result.applicationId;
 
-       // Upload documents if any
-       const documentUploads = [];
-       for (const [docName, file] of Object.entries(uploadedFiles)) {
-         if (file) {
-           documentUploads.push(uploadDocument(applicationId, docName, file));
+       // Associate uploaded documents with the application
+       const documentAssociations = [];
+       for (const [docName, fileData] of Object.entries(uploadedFiles)) {
+         if (fileData && fileData.tempFile) {
+           documentAssociations.push(associateDocument(applicationId, docName, fileData.tempFile));
          }
        }
 
-       if (documentUploads.length > 0) {
-         await Promise.all(documentUploads);
+       if (documentAssociations.length > 0) {
+         await Promise.all(documentAssociations);
        }
 
        toast.success("Loan application submitted successfully! We'll review your application and get back to you within 24-48 hours.");
@@ -249,26 +265,29 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       'Utility Bill': 'UTILITY_BILL',
       'Work ID': 'WORK_ID'
     };
-    return docTypeMap[fieldName] || 'OTHER';
+    return docTypeMap[fieldName] || 'GOVERNMENT_ID';
   };
 
-  const uploadDocument = async (applicationId: string, docName: string, file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('applicationId', applicationId);
-    formData.append('documentType', getDocumentType(docName));
-
-    const response = await fetch('/api/upload', {
+  const associateDocument = async (applicationId: string, docName: string, tempFile: any) => {
+    const response = await fetch('/api/upload/associate', {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      body: formData
+      body: JSON.stringify({
+        applicationId,
+        tempFilePath: tempFile.filePath,
+        documentType: tempFile.documentType,
+        fileName: tempFile.fileName,
+        fileSize: tempFile.fileSize,
+        mimeType: tempFile.mimeType
+      })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to upload ${docName}`);
+      throw new Error(errorData.error || `Failed to associate ${docName}`);
     }
 
     return response.json();
@@ -405,7 +424,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
                 onClick={() => {
                   const input = document.createElement('input');
                   input.type = 'file';
-                  input.accept = field.accept || '*';
+                  input.accept = field.name === 'selfie' ? 'image/*' : 'image/*,.pdf,.doc,.docx';
                   input.onchange = async (e) => {
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
@@ -637,7 +656,13 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
                       onClick={() => {
                         const input = document.createElement('input');
                         input.type = 'file';
-                        input.accept = '*';
+                        // Set proper accept attribute based on document type
+                        const documentType = getDocumentType(doc);
+                        if (documentType === 'SELFIE') {
+                          input.accept = 'image/jpeg,image/png,image/webp,image/jpg';
+                        } else {
+                          input.accept = 'image/jpeg,image/png,image/webp,image/jpg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                        }
                         input.onchange = async (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) {

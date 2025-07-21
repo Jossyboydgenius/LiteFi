@@ -1,13 +1,23 @@
 import { Storage } from '@google-cloud/storage'
 import { nanoid } from 'nanoid'
+import fs from 'fs'
+import path from 'path'
 
-// Initialize Google Cloud Storage
-const storage = new Storage({
-  projectId: process.env.GCP_PROJECT_ID,
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-})
+// Check if running in development mode without GCP credentials
+const isDevelopment = process.env.NODE_ENV === 'development'
+const hasGCPCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)
 
-const bucket = storage.bucket(process.env.GCS_BUCKET_NAME!)
+let storage: Storage | null = null
+let bucket: any = null
+
+// Initialize Google Cloud Storage only if credentials are available
+if (hasGCPCredentials) {
+  storage = new Storage({
+    projectId: process.env.GCP_PROJECT_ID,
+    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  })
+  bucket = storage.bucket(process.env.GCS_BUCKET_NAME!)
+}
 
 export interface UploadResult {
   fileName: string
@@ -17,7 +27,7 @@ export interface UploadResult {
 }
 
 /**
- * Upload a file to Google Cloud Storage
+ * Upload a file to Google Cloud Storage or local storage (fallback)
  * @param file - File buffer
  * @param originalName - Original file name
  * @param mimeType - File MIME type
@@ -37,44 +47,72 @@ export async function uploadFile(
     const fileName = `${uniqueId}.${fileExtension}`
     const filePath = folder ? `${folder}/${fileName}` : fileName
     
-    // Create file reference
-    const fileRef = bucket.file(filePath)
-    
-    // Upload file
-    const stream = fileRef.createWriteStream({
-      metadata: {
-        contentType: mimeType,
-        cacheControl: 'public, max-age=31536000', // 1 year cache
-      },
-      public: true, // Make file publicly accessible
-    })
-    
-    return new Promise((resolve, reject) => {
-      stream.on('error', (error: Error) => {
-        console.error('Upload error:', error)
-        reject(new Error(`Upload failed: ${error.message}`))
+    // Use Google Cloud Storage if available, otherwise use local storage
+    if (hasGCPCredentials && bucket) {
+      // Create file reference
+      const fileRef = bucket.file(filePath)
+      
+      // Upload file
+      const stream = fileRef.createWriteStream({
+        metadata: {
+          contentType: mimeType,
+          cacheControl: 'public, max-age=31536000', // 1 year cache
+        },
+        public: true, // Make file publicly accessible
       })
       
-      stream.on('finish', async () => {
-        try {
-          // Make file public
-          await fileRef.makePublic()
-          
-          const publicUrl = `${process.env.CDN_BASE_URL}/${process.env.GCS_BUCKET_NAME}/${filePath}`
-          
-          resolve({
-            fileName,
-            filePath,
-            publicUrl,
-            fileSize: file.length,
-          })
-        } catch (error) {
-          reject(error)
-        }
+      return new Promise((resolve, reject) => {
+        stream.on('error', (error: Error) => {
+          console.error('Upload error:', error)
+          reject(new Error(`Upload failed: ${error.message}`))
+        })
+        
+        stream.on('finish', async () => {
+          try {
+            // Make file public
+            await fileRef.makePublic()
+            
+            const publicUrl = `${process.env.CDN_BASE_URL}/${process.env.GCS_BUCKET_NAME}/${filePath}`
+            
+            resolve({
+              fileName,
+              filePath,
+              publicUrl,
+              fileSize: file.length,
+            })
+          } catch (error) {
+            reject(error)
+          }
+        })
+        
+        stream.end(file)
       })
+    } else {
+      // Fallback to local storage for development
+      console.log('Using local storage fallback (GCP credentials not found)')
       
-      stream.end(file)
-    })
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+      const folderPath = folder ? path.join(uploadsDir, folder) : uploadsDir
+      
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true })
+      }
+      
+      // Write file to local storage
+      const localFilePath = path.join(folderPath, fileName)
+      fs.writeFileSync(localFilePath, file)
+      
+      // Return mock result for local development
+      const publicUrl = `/uploads/${filePath}`
+      
+      return {
+        fileName,
+        filePath,
+        publicUrl,
+        fileSize: file.length,
+      }
+    }
   } catch (error) {
     console.error('Storage upload error:', error)
     throw new Error(`Failed to upload file: ${error}`)
@@ -82,14 +120,23 @@ export async function uploadFile(
 }
 
 /**
- * Delete a file from Google Cloud Storage
+ * Delete a file from Google Cloud Storage or local storage
  * @param filePath - Path to the file in storage
  */
 export async function deleteFile(filePath: string): Promise<void> {
   try {
-    const fileRef = bucket.file(filePath)
-    await fileRef.delete()
-    console.log(`File ${filePath} deleted successfully`)
+    if (hasGCPCredentials && bucket) {
+      const fileRef = bucket.file(filePath)
+      await fileRef.delete()
+      console.log(`File ${filePath} deleted successfully from GCS`)
+    } else {
+      // Delete from local storage
+      const localFilePath = path.join(process.cwd(), 'public', 'uploads', filePath)
+      if (fs.existsSync(localFilePath)) {
+        fs.unlinkSync(localFilePath)
+        console.log(`File ${filePath} deleted successfully from local storage`)
+      }
+    }
   } catch (error) {
     console.error('Delete error:', error)
     throw new Error(`Failed to delete file: ${error}`)
@@ -106,12 +153,17 @@ export async function getSignedUrl(
   expiresIn: number = 3600000 // 1 hour
 ): Promise<string> {
   try {
-    const fileRef = bucket.file(filePath)
-    const [signedUrl] = await fileRef.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + expiresIn,
-    })
-    return signedUrl
+    if (hasGCPCredentials && bucket) {
+      const fileRef = bucket.file(filePath)
+      const [signedUrl] = await fileRef.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + expiresIn,
+      })
+      return signedUrl
+    } else {
+      // Return local URL for development
+      return `/uploads/${filePath}`
+    }
   } catch (error) {
     console.error('Signed URL error:', error)
     throw new Error(`Failed to generate signed URL: ${error}`)
@@ -124,9 +176,15 @@ export async function getSignedUrl(
  */
 export async function fileExists(filePath: string): Promise<boolean> {
   try {
-    const fileRef = bucket.file(filePath)
-    const [exists] = await fileRef.exists()
-    return exists
+    if (hasGCPCredentials && bucket) {
+      const fileRef = bucket.file(filePath)
+      const [exists] = await fileRef.exists()
+      return exists
+    } else {
+      // Check local storage
+      const localFilePath = path.join(process.cwd(), 'public', 'uploads', filePath)
+      return fs.existsSync(localFilePath)
+    }
   } catch (error) {
     console.error('File exists check error:', error)
     return false
