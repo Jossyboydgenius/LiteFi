@@ -349,10 +349,10 @@ function LoginContent() {
   const showPasswordError = passwordTouched && !isPasswordValid;
 
   return (
-    <div className="bg-gray-50 min-h-screen flex justify-center items-center">
+    <div className="bg-gray-50 min-h-screen flex justify-center items-center px-4 py-8">
       {/* Full width form - no side image */}
       <div className="w-full max-w-md mx-auto">
-        <div className="bg-white w-full overflow-y-auto px-8 pt-8 pb-8 m-4 rounded-lg shadow-lg">
+        <div className="bg-white w-full overflow-y-auto px-6 sm:px-8 pt-8 pb-8 rounded-lg shadow-lg">
           <div className="flex justify-center mb-4">
             <Image 
               src={logoImage} 

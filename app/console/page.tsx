@@ -109,7 +109,7 @@ export default function AdminDashboard() {
   // Initialize component
   useEffect(() => {
     // Initialize user data
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem('user') || localStorage.getItem('userData');
     if (userData) {
       setUser(JSON.parse(userData));
     }
@@ -397,29 +397,26 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Welcome Header */}
-      {user && (
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Welcome back, {user.firstName} {user.lastName}
-          </h1>
-          <p className="text-gray-600">Manage loan applications and track performance</p>
-        </div>
-      )}
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Image 
-              src={logoImage} 
-              alt="LiteFi Logo" 
-              width={100}
-              height={30}
-            />
             <div className="flex items-center space-x-4">
-              <span className="text-gray-600">
-                Welcome back{user ? `, ${user.firstName || user.name || 'Admin'}` : ''}!
-              </span>
+              <Image 
+                src={logoImage} 
+                alt="LiteFi Logo" 
+                width={100}
+                height={30}
+              />
+              {user && (
+                <div className="ml-6">
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Welcome back, {user.firstName}
+                  </h1>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center space-x-4">
               <Button 
                  variant="outline" 
                  size="sm"
@@ -443,7 +440,6 @@ export default function AdminDashboard() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Console Dashboard</h1>
-            <p className="text-gray-600">Manage loan applications and track performance</p>
           </div>
           <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
             <DialogTrigger asChild>
