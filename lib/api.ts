@@ -393,6 +393,64 @@ export async function uploadDocument(file: File, documentType: string, loanAppli
   }
 }
 
+// Admin API functions
+export async function getAdminLoanApplications(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}): Promise<any> {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.status) searchParams.append('status', params.status);
+    
+    const url = `/api/admin/loan-applications${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    return await apiRequest(url);
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to fetch loan applications'
+    };
+  }
+}
+
+export async function approveLoanApplication(id: string, data: {
+  approvedAmount: number;
+  interestRate: number;
+  approvedTenure: number;
+  notes?: string;
+}): Promise<any> {
+  try {
+    return await apiRequest(`/api/admin/loan-applications/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to approve loan application'
+    };
+  }
+}
+
+export async function rejectLoanApplication(id: string, data: {
+  reason: string;
+  notes?: string;
+}): Promise<any> {
+  try {
+    return await apiRequest(`/api/admin/loan-applications/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to reject loan application'
+    };
+  }
+}
+
 // Auth API object for easier imports
 export const authApi = {
   login,
@@ -401,4 +459,11 @@ export const authApi = {
   resendOtp,
   requestPasswordReset,
   confirmPasswordReset,
+};
+
+// Admin API object for easier imports
+export const adminApi = {
+  getAdminLoanApplications,
+  approveLoanApplication,
+  rejectLoanApplication,
 };

@@ -17,92 +17,43 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { CheckCircle, XCircle, Eye, Download, FileText, Users, DollarSign, TrendingUp, Calendar, FileSpreadsheet } from 'lucide-react';
+import { SkeletonTable, SkeletonStats } from "@/components/ui/skeleton-table";
+import { adminApi } from '@/lib/api';
 
 interface LoanApplication {
   id: string;
-  applicationId: string;
+  loanType: string;
   loanId?: string;
-  type: 'personal' | 'auto' | 'business';
-  applicantName: string;
-  email: string;
-  phone: string;
-  amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  loanAmount: number;
+  tenure: number;
   purpose?: string;
-  employmentStatus: string;
-  monthlyIncome: number;
-  status: 'pending' | 'approved' | 'rejected';
-  submittedAt: string;
+  createdAt: string;
+  updatedAt: string;
   reviewedAt?: string;
   reviewedBy?: string;
   notes?: string;
-  documents: string[];
   approvedAmount?: number;
-  approvedTenure?: string;
-   userId?: string; // Added userId field
+  interestRate?: number;
+  approvedTenure?: number;
+  rejectionReason?: string;
+  personalInfo?: any;
+  employmentInfo?: any;
+  financialInfo?: any;
+  businessInfo?: any;
+  carInfo?: any;
+  documents?: any[];
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 const generateId = () => nanoid(10);
-
-// Initial mock data without generated IDs to prevent hydration mismatch
-const initialMockApplications: Omit<LoanApplication, 'applicationId' | 'loanId'>[] = [
-  {
-    id: '1',
-    type: 'personal',
-    applicantName: 'John Smith',
-    email: 'john.smith@email.com',
-    phone: '+234 801 234 5678',
-    amount: 500000,
-    purpose: 'Home renovation',
-    employmentStatus: 'employed',
-    monthlyIncome: 150000,
-    status: 'pending',
-    submittedAt: '2024-01-15T10:30:00Z',
-    documents: ['id_card.pdf', 'salary_slip.pdf', 'bank_statement.pdf'],
-    approvedAmount: 400000,
-    approvedTenure: '12 months',
-    userId: 'user123' // Added userId
-  },
-  {
-    id: '2',
-    type: 'auto',
-    applicantName: 'Sarah Johnson',
-    email: 'sarah.j@email.com',
-    phone: '+234 802 345 6789',
-    amount: 2500000,
-    purpose: 'Toyota Camry 2020',
-    employmentStatus: 'employed',
-    monthlyIncome: 350000,
-    status: 'approved',
-    submittedAt: '2024-01-14T14:20:00Z',
-    reviewedAt: '2024-01-15T09:45:00Z',
-    reviewedBy: 'Admin User',
-    notes: 'Good credit history and stable income.',
-    documents: ['id_card.pdf', 'driver_license.pdf', 'insurance.pdf', 'vehicle_inspection.pdf'],
-    approvedAmount: 2000000,
-    approvedTenure: '24 months',
-    userId: 'user456' // Added userId
-  },
-  {
-    id: '3',
-    type: 'business',
-    applicantName: 'Michael Adebayo',
-    email: 'michael.adebayo@business.com',
-    phone: '+234 803 456 7890',
-    amount: 5000000,
-    purpose: 'Equipment purchase for manufacturing',
-    employmentStatus: 'business-owner',
-    monthlyIncome: 800000,
-    status: 'rejected',
-    submittedAt: '2024-01-13T16:15:00Z',
-    reviewedAt: '2024-01-14T11:30:00Z',
-    reviewedBy: 'Admin User',
-    notes: 'Insufficient business documentation provided.',
-    documents: ['business_registration.pdf', 'tax_certificate.pdf'],
-    userId: 'user789' // Added userId
-  }
-];
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -112,47 +63,94 @@ export default function AdminDashboard() {
   const [filterType, setFilterType] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showApproveModal, setShowApproveModal] = useState(false); // Added state for approve modal
-  const [approvalApplication, setApprovalApplication] = useState<LoanApplication | null>(null); // Added state for application being approved
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approvalApplication, setApprovalApplication] = useState<LoanApplication | null>(null);
   const [user, setUser] = useState<any>(null);
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0
+  });
+  // Using sonner toast instead of useToast
 
-  // Initialize applications with generated IDs on client side only
+  // Fetch applications from API
+  const fetchApplications = async (page = 1, status?: string) => {
+    try {
+      setLoading(true);
+      const params: any = { page, limit: pagination.limit };
+      if (status && status !== 'all') {
+        params.status = status.toUpperCase();
+      }
+      
+      const response = await adminApi.getAdminLoanApplications(params);
+      
+      if (response.success) {
+        setApplications(response.loanApplications || []);
+        setPagination({
+          page: response.pagination?.page || 1,
+          limit: response.pagination?.limit || 10,
+          total: response.pagination?.total || 0,
+          totalPages: response.pagination?.totalPages || 0
+        });
+      } else {
+        toast.error(response.error || "Failed to fetch applications");
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      toast.error("Failed to fetch applications");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize component
   useEffect(() => {
-    const mockApplications: LoanApplication[] = initialMockApplications.map(app => ({
-      ...app,
-      applicationId: generateId(),
-      loanId: app.id === '2' ? generateId() : undefined // Only approved application has loanId
-    }));
-    setApplications(mockApplications);
-
     // Initialize user data
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
     }
+    
+    // Fetch applications
+    fetchApplications();
   }, []);
 
+  // Refetch when filters change
+  useEffect(() => {
+    if (!loading) {
+      fetchApplications(1, filterStatus);
+    }
+  }, [filterStatus]);
+
   const filteredApplications = applications.filter(app => {
-    const matchesStatus = filterStatus === 'all' || app.status === filterStatus;
-    const matchesType = filterType === 'all' || app.type === filterType;
+    const matchesStatus = filterStatus === 'all' || app.status === filterStatus.toUpperCase();
+    const matchesType = filterType === 'all' || app.loanType === filterType;
     const matchesSearch = searchTerm === '' || 
-      app.applicantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.applicationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (app.userId && app.userId.toLowerCase().includes(searchTerm.toLowerCase())); // Added search by userId
+      app.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (app.loanId && app.loanId.toLowerCase().includes(searchTerm.toLowerCase()));
     
     return matchesStatus && matchesType && matchesSearch;
   });
 
   const stats = {
     total: applications.length,
-    pending: applications.filter(app => app.status === 'pending').length,
-    approved: applications.filter(app => app.status === 'approved').length,
-    rejected: applications.filter(app => app.status === 'rejected').length,
+    pending: applications.filter(app => app.status === 'PENDING').length,
+    approved: applications.filter(app => app.status === 'APPROVED').length,
+    rejected: applications.filter(app => app.status === 'REJECTED').length,
     totalAmount: applications
-      .filter(app => app.status === 'approved')
-      .reduce((sum, app) => sum + app.amount, 0)
+      .filter(app => app.status === 'APPROVED' && app.approvedAmount)
+      .reduce((sum, app) => {
+        const amount = typeof app.approvedAmount === 'string' ? 
+          parseFloat(app.approvedAmount) : 
+          Number(app.approvedAmount) || 0;
+        return sum + amount;
+      }, 0)
   };
 
   // Modified to open the approval modal instead of directly approving
@@ -162,57 +160,77 @@ export default function AdminDashboard() {
   };
 
   // New function to handle the actual approval with tenure and amount
-  const handleApprove = (application: LoanApplication, approvedAmount: number, approvedTenure: string) => {
-    const loanId = generateId();
-    const updatedApplications = applications.map(app =>
-      app.id === application.id
-        ? {
-            ...app,
-            status: 'approved' as const,
-            loanId,
-            approvedAmount,
-            approvedTenure,
-            reviewedAt: new Date().toISOString(),
-            reviewedBy: 'Admin User',
-            notes: `Loan approved with ID: ${loanId}. Amount: ${approvedAmount}, Tenure: ${approvedTenure}`
-          }
-        : app
-    );
-    setApplications(updatedApplications);
-    setShowApproveModal(false);
-    toast({
-      title: "Application Approved",
-      description: `Loan ID ${loanId} has been generated for ${application.applicantName}`,
-      variant: "default"
-    });
+  const handleApprove = async (application: LoanApplication, approvedAmount: number, approvedTenure: string, interestRate: number = 15) => {
+    try {
+      setActionLoading(application.id);
+      
+      // Convert tenure string to number (extract number from "12 months")
+      const tenureNumber = parseInt(approvedTenure.split(' ')[0]);
+      
+      // Ensure approvedAmount is a number
+      const numericApprovedAmount = typeof approvedAmount === 'string' ? 
+        parseFloat((approvedAmount as string).replace(/[^0-9.]/g, '')) : 
+        Number(approvedAmount);
+      
+      const response = await adminApi.approveLoanApplication(application.id, {
+        approvedAmount: numericApprovedAmount,
+        interestRate,
+        approvedTenure: tenureNumber,
+        notes: `Loan approved. Amount: ₦${numericApprovedAmount.toLocaleString()}, Tenure: ${tenureNumber} months`
+      });
+      
+      if (response.success) {
+        setShowApproveModal(false);
+        setApprovalApplication(null);
+        toast.success(`Application Approved - Loan ID ${response.loanApplication.loanId} has been generated for ${application.user.firstName} ${application.user.lastName}`);
+        // Refresh applications
+        fetchApplications(pagination.page, filterStatus);
+      } else {
+        toast.error(response.error || "Failed to approve application");
+      }
+    } catch (error) {
+      console.error('Error approving application:', error);
+      toast.error("Failed to approve application");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleReject = (application: LoanApplication, reason: string) => {
-    const updatedApplications = applications.map(app =>
-      app.id === application.id
-        ? {
-            ...app,
-            status: 'rejected' as const,
-            reviewedAt: new Date().toISOString(),
-            reviewedBy: 'Admin User',
-            notes: reason
-          }
-        : app
-    );
-    setApplications(updatedApplications);
-    toast({
-      title: "Application Rejected",
-      description: `Application for ${application.applicantName} has been rejected`,
-      variant: "destructive"
-    });
+  const handleReject = async (application: LoanApplication, reason: string) => {
+    try {
+      setActionLoading(application.id);
+      
+      const response = await adminApi.rejectLoanApplication(application.id, {
+        reason,
+        notes: reason
+      });
+      
+      if (response.success) {
+        toast.success(`Application for ${application.user.firstName} ${application.user.lastName} has been rejected`);
+        // Refresh applications
+        fetchApplications(pagination.page, filterStatus);
+      } else {
+        toast.error(response.error || "Failed to reject application");
+      }
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+      toast.error("Failed to reject application");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | string | any) => {
+    // Handle Decimal values from Prisma
+    const numericAmount = typeof amount === 'string' ? 
+      parseFloat(amount) : 
+      Number(amount) || 0;
+    
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
       minimumFractionDigits: 0
-    }).format(amount);
+    }).format(numericAmount);
   };
 
   const formatDate = (dateString: string) => {
@@ -227,35 +245,40 @@ export default function AdminDashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'approved':
+      case 'APPROVED':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-      case 'rejected':
+      case 'REJECTED':
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Rejected</Badge>;
       default:
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
     }
   };
 
-  const getTypeBadge = (type: string) => {
-    const typeLabels = {
-      personal: 'Personal',
-      auto: 'Auto',
-      business: 'Business'
+  const formatLoanType = (type: string) => {
+    const typeLabels: { [key: string]: string } = {
+      'SALARY_CASH': 'Salary Cash',
+      'SALARY_CAR': 'Salary Car', 
+      'BUSINESS_CASH': 'Business Cash',
+      'BUSINESS_CAR': 'Business Car',
+      'salary-cash': 'Salary Cash',
+      'salary-car': 'Salary Car',
+      'business-cash': 'Business Cash',
+      'business-car': 'Business Car'
     };
-    return <Badge variant="outline">{typeLabels[type as keyof typeof typeLabels]}</Badge>;
+    return typeLabels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const exportToCSV = () => {
     const csvData = applications.map(app => ({
-      'Application ID': app.applicationId,
+      'Application ID': app.id,
       'Loan ID': app.loanId || '',
-      'Type': app.type,
-      'Applicant Name': app.applicantName,
-      'Email': app.email,
-      'Phone': app.phone,
-      'Amount': app.amount,
+      'Type': app.loanType,
+      'Applicant Name': `${app.user.firstName} ${app.user.lastName}`,
+      'Email': app.user.email,
+      'Amount': app.loanAmount,
+      'Approved Amount': app.approvedAmount || '',
       'Status': app.status,
-      'Submitted At': formatDate(app.submittedAt),
+      'Submitted At': formatDate(app.createdAt),
       'Reviewed At': app.reviewedAt ? formatDate(app.reviewedAt) : '',
       'Reviewed By': app.reviewedBy || '',
       'Notes': app.notes || ''
@@ -276,62 +299,113 @@ export default function AdminDashboard() {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 
-    toast({
-      title: "Export Successful",
-      description: "Applications data has been exported to CSV",
-      variant: "default"
-    });
+    toast.success("Applications data has been exported to CSV");
     setShowExportModal(false);
   };
 
   const exportToPDF = () => {
-    // Simulate PDF export
-    const pdfContent = `
-LiteFi Loan Applications Report
-Generated on: ${new Date().toLocaleDateString()}
-
-Total Applications: ${stats.total}
-Pending: ${stats.pending}
-Approved: ${stats.approved}
-Rejected: ${stats.rejected}
-Total Approved Amount: ${formatCurrency(stats.totalAmount)}
-
-Applications:
-${applications.map(app => `
-Application ID: ${app.applicationId}
-Loan ID: ${app.loanId || 'N/A'}
-Type: ${app.type}
-Applicant: ${app.applicantName}
-Email: ${app.email}
-Amount: ${formatCurrency(app.amount)}
-Status: ${app.status}
-Submitted: ${formatDate(app.submittedAt)}
-${app.reviewedAt ? `Reviewed: ${formatDate(app.reviewedAt)}` : ''}
-${app.notes ? `Notes: ${app.notes}` : ''}
----
-`).join('')}
+    // Create HTML content for PDF
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>LiteFi Loan Applications Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .stats { margin-bottom: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .stat-item { padding: 10px; background: #f5f5f5; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .status-approved { color: green; font-weight: bold; }
+        .status-pending { color: orange; font-weight: bold; }
+        .status-rejected { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LiteFi Loan Applications Report</h1>
+        <p>Generated on: ${new Date().toLocaleDateString()}</p>
+    </div>
+    
+    <div class="stats">
+        <h2>Summary Statistics</h2>
+        <div class="stats-grid">
+            <div class="stat-item"><strong>Total Applications:</strong> ${stats.total}</div>
+            <div class="stat-item"><strong>Pending:</strong> ${stats.pending}</div>
+            <div class="stat-item"><strong>Approved:</strong> ${stats.approved}</div>
+            <div class="stat-item"><strong>Rejected:</strong> ${stats.rejected}</div>
+            <div class="stat-item" style="grid-column: span 2;"><strong>Total Approved Amount:</strong> ${formatCurrency(stats.totalAmount)}</div>
+        </div>
+    </div>
+    
+    <h2>Applications Details</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Application ID</th>
+                <th>Loan ID</th>
+                <th>Loan Type</th>
+                <th>Applicant</th>
+                <th>Email</th>
+                <th>Amount</th>
+                <th>Approved Amount</th>
+                <th>Status</th>
+                <th>Submitted</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${applications.map(app => `
+                <tr>
+                    <td>${app.id}</td>
+                    <td>${app.loanId || 'N/A'}</td>
+                    <td>${formatLoanType(app.loanType)}</td>
+                    <td>${app.user.firstName} ${app.user.lastName}</td>
+                    <td>${app.user.email}</td>
+                    <td>${formatCurrency(app.loanAmount)}</td>
+                    <td>${app.approvedAmount ? formatCurrency(app.approvedAmount) : 'N/A'}</td>
+                    <td class="status-${app.status.toLowerCase()}">${app.status}</td>
+                    <td>${formatDate(app.createdAt)}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+</body>
+</html>
     `;
 
-    const blob = new Blob([pdfContent], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `loan_applications_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    // Create a new window and print to PDF
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      
+      // Wait for content to load then trigger print
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    }
 
-    toast({
-      title: "Export Successful",
-      description: "Applications data has been exported to PDF",
-      variant: "default"
-    });
+    toast.success("PDF export initiated - please save the document when prompted");
     setShowExportModal(false);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Welcome Header */}
+      {user && (
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Welcome back, {user.firstName} {user.lastName}
+          </h1>
+          <p className="text-gray-600">Manage loan applications and track performance</p>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
@@ -406,53 +480,57 @@ ${app.notes ? `Notes: ${app.notes}` : ''}
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-              <XCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Approved</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold">{formatCurrency(stats.totalAmount)}</div>
-            </CardContent>
-          </Card>
-        </div>
+        {loading ? (
+          <SkeletonStats />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.total}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Approved</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Approved</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-bold">{formatCurrency(stats.totalAmount)}</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Filters and Search */}
         <Card>
@@ -480,109 +558,158 @@ ${app.notes ? `Notes: ${app.notes}` : ''}
                 </SelectContent>
               </Select>
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="personal">Personal</SelectItem>
-                  <SelectItem value="auto">Auto</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
-                </SelectContent>
-              </Select>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="SALARY_CASH">Salary Cash</SelectItem>
+                <SelectItem value="SALARY_CAR">Salary Car</SelectItem>
+                <SelectItem value="BUSINESS_CASH">Business Cash</SelectItem>
+                <SelectItem value="BUSINESS_CAR">Business Car</SelectItem>
+              </SelectContent>
+            </Select>
             </div>
 
             {/* Applications Table */}
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Application ID</TableHead>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Loan ID</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Applicant</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredApplications.map((application) => (
-                    <TableRow key={application.id}>
-                      <TableCell className="font-mono text-sm">{application.applicationId}</TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {application.userId || '-'}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {application.loanId || '-'}
-                      </TableCell>
-                      <TableCell>{getTypeBadge(application.type)}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{application.applicantName}</div>
-                          <div className="text-sm text-gray-500">{application.email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatCurrency(application.amount)}</TableCell>
-                      <TableCell>{getStatusBadge(application.status)}</TableCell>
-                      <TableCell className="text-sm">{formatDate(application.submittedAt)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setSelectedApplication(application)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-white">
-                              <DialogHeader>
-                                <DialogTitle className="text-black">Application Details</DialogTitle>
-                              </DialogHeader>
-                              {selectedApplication && (
-                                <ApplicationDetailsModal 
-                                  application={selectedApplication}
-                                  onApprove={handleApproveClick} // Changed to use the click handler
-                                  onReject={handleReject}
-                                />
-                              )}
-                            </DialogContent>
-                          </Dialog>
-                          {application.status === 'pending' && (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={() => handleApproveClick(application)} // Changed to use the click handler
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button size="sm" variant="destructive">
-                                    <XCircle className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="bg-white">
-                                  <RejectApplicationModal 
-                                    application={application}
+              {loading ? (
+                <SkeletonTable />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Application ID</TableHead>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>Loan ID</TableHead>
+                      <TableHead>Loan Type</TableHead>
+                      <TableHead>Applicant</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredApplications.map((application) => (
+                      <TableRow key={application.id}>
+                        <TableCell className="font-mono text-sm">{application.id}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {application.user.id || '-'}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                           {application.loanId || application.id}
+                         </TableCell>
+                        <TableCell>{formatLoanType(application.loanType)}</TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{application.user.firstName} {application.user.lastName}</div>
+                            <div className="text-sm text-gray-500">{application.user.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatCurrency(application.loanAmount)}</TableCell>
+                        <TableCell>{getStatusBadge(application.status)}</TableCell>
+                        <TableCell className="text-sm">{formatDate(application.createdAt)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedApplication(application)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-white">
+                                <DialogHeader>
+                                  <DialogTitle className="text-black">Application Details</DialogTitle>
+                                </DialogHeader>
+                                {selectedApplication && (
+                                  <ApplicationDetailsModal 
+                                    application={selectedApplication}
+                                    onApprove={handleApproveClick} // Changed to use the click handler
                                     onReject={handleReject}
                                   />
-                                </DialogContent>
-                              </Dialog>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                                )}
+              
+              {/* Pagination */}
+              {!loading && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between px-2 py-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} applications
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchApplications(pagination.page - 1, filterStatus)}
+                      disabled={pagination.page <= 1 || loading}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        const pageNum = i + 1;
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={pagination.page === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => fetchApplications(pageNum, filterStatus)}
+                            disabled={loading}
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchApplications(pagination.page + 1, filterStatus)}
+                      disabled={pagination.page >= pagination.totalPages || loading}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+                              </DialogContent>
+                            </Dialog>
+                            {application.status === 'PENDING' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApproveClick(application)} // Changed to use the click handler
+                                  className="bg-green-600 hover:bg-green-700"
+                                  disabled={actionLoading === application.id}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" variant="destructive" disabled={actionLoading === application.id}>
+                                      <XCircle className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="bg-white">
+                                    <RejectApplicationModal 
+                                      application={application}
+                                      onReject={handleReject}
+                                    />
+                                  </DialogContent>
+                                </Dialog>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -615,6 +742,20 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
 
+  const formatLoanType = (type: string) => {
+    const typeLabels: { [key: string]: string } = {
+      'SALARY_CASH': 'Salary Cash',
+      'SALARY_CAR': 'Salary Car', 
+      'BUSINESS_CASH': 'Business Cash',
+      'BUSINESS_CAR': 'Business Car',
+      'salary-cash': 'Salary Cash',
+      'salary-car': 'Salary Car',
+      'business-cash': 'Business Cash',
+      'business-car': 'Business Car'
+    };
+    return typeLabels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -646,7 +787,7 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label className="text-sm font-medium text-gray-700">Application ID</Label>
-          <p className="font-mono text-sm text-black">{application.applicationId}</p>
+          <p className="font-mono text-sm text-black">{application.id}</p>
         </div>
         {application.loanId && (
           <div>
@@ -655,9 +796,9 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
           </div>
         )}
         <div>
-          <Label className="text-sm font-medium text-gray-700">Type</Label>
-          <p className="capitalize text-black">{application.type}</p>
-        </div>
+            <Label className="text-sm font-medium text-gray-700">Type</Label>
+            <p className="text-black">{formatLoanType(application.loanType)}</p>
+          </div>
         <div>
           <Label className="text-sm font-medium text-gray-700">Status</Label>
           <p className="capitalize text-black">{application.status}</p>
@@ -676,18 +817,19 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
         <div>
           <Label className="text-sm font-medium text-gray-700">Applicant Information</Label>
           <div className="mt-2 space-y-2">
-            <p className="text-black"><strong>Name:</strong> {application.applicantName}</p>
-            <p className="text-black"><strong>Email:</strong> {application.email}</p>
-            <p className="text-black"><strong>Phone:</strong> {application.phone}</p>
-            <p className="text-black"><strong>Employment:</strong> {application.employmentStatus}</p>
-            <p className="text-black"><strong>Monthly Income:</strong> {formatCurrency(application.monthlyIncome)}</p>
+            <p className="text-black"><strong>Name:</strong> {application.user.firstName} {application.user.lastName}</p>
+            <p className="text-black"><strong>Email:</strong> {application.user.email}</p>
+            <p className="text-black"><strong>Phone:</strong> {application.personalInfo?.phone || 'N/A'}</p>
+            <p className="text-black"><strong>Employment:</strong> {application.employmentInfo?.employmentStatus || 'N/A'}</p>
+            <p className="text-black"><strong>Monthly Income:</strong> {application.financialInfo?.monthlyIncome ? formatCurrency(application.financialInfo.monthlyIncome) : 'N/A'}</p>
           </div>
         </div>
 
         <div>
           <Label className="text-sm font-medium text-gray-700">Loan Information</Label>
           <div className="mt-2 space-y-2">
-            <p className="text-black"><strong>Amount:</strong> {formatCurrency(application.amount)}</p>
+            <p className="text-black"><strong>Amount:</strong> {formatCurrency(application.loanAmount)}</p>
+            <p className="text-black"><strong>Tenure:</strong> {application.tenure} months</p>
             {application.purpose && <p className="text-black"><strong>Purpose:</strong> {application.purpose}</p>}
           </div>
         </div>
@@ -695,22 +837,26 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
         <div>
           <Label className="text-sm font-medium text-gray-700">Documents</Label>
           <div className="mt-2">
-            {application.documents.map((doc, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b">
-                <span className="text-black">{doc}</span>
-                <Button size="sm" variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </Button>
-              </div>
-            ))}
+            {application.documents && application.documents.length > 0 ? (
+              application.documents.map((doc, index) => (
+                <div key={index} className="flex items-center justify-between py-2 border-b">
+                  <span className="text-black">{doc.name || doc.type || `Document ${index + 1}`}</span>
+                  <Button size="sm" variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No documents uploaded</p>
+            )}
           </div>
         </div>
 
         <div>
           <Label className="text-sm font-medium text-gray-700">Timeline</Label>
           <div className="mt-2 space-y-2">
-            <p className="text-black"><strong>Submitted:</strong> {formatDate(application.submittedAt)}</p>
+            <p className="text-black"><strong>Submitted:</strong> {formatDate(application.createdAt)}</p>
             {application.reviewedAt && (
               <p className="text-black"><strong>Reviewed:</strong> {formatDate(application.reviewedAt)}</p>
             )}
@@ -728,7 +874,7 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
         )}
       </div>
 
-      {application.status === 'pending' && (
+      {application.status === 'PENDING' && (
         <div className="flex gap-4 pt-4 border-t">
           {!showRejectForm ? (
             <>
@@ -796,7 +942,7 @@ function RejectApplicationModal({ application, onReject }: RejectApplicationModa
       </DialogHeader>
       <div>
         <p className="text-sm text-gray-600 mb-4">
-          You are about to reject the application for <strong className="text-black">{application.applicantName}</strong>.
+          You are about to reject the application for <strong className="text-black">{application.user.firstName} {application.user.lastName}</strong>.
           Please provide a reason for the rejection.
         </p>
         <Label htmlFor="reason" className="text-gray-700">Rejection Reason</Label>
@@ -831,9 +977,14 @@ interface ApproveApplicationModalProps {
 }
 
 function ApproveApplicationModal({ application, onApprove, onCancel }: ApproveApplicationModalProps) {
-  const [approvedAmount, setApprovedAmount] = useState<number>(application.amount);
-  const [formattedAmount, setFormattedAmount] = useState<string>(application.amount.toLocaleString());
+  const [approvedAmount, setApprovedAmount] = useState<number>(application.loanAmount);
+  const [formattedAmount, setFormattedAmount] = useState<string>(application.loanAmount.toLocaleString());
   const [approvedTenure, setApprovedTenure] = useState<string>('12 months');
+
+  // Format the initial amount on component mount
+  useEffect(() => {
+    setFormattedAmount(application.loanAmount.toLocaleString());
+  }, [application.loanAmount]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Remove non-numeric characters and parse to number
@@ -860,7 +1011,7 @@ function ApproveApplicationModal({ application, onApprove, onCancel }: ApproveAp
       </DialogHeader>
       <div>
         <p className="text-sm text-gray-600 mb-4">
-          You are about to approve the application for <strong className="text-black">{application.applicantName}</strong>.
+          You are about to approve the application for <strong className="text-black">{application.user.firstName} {application.user.lastName}</strong>.
           Please specify the approved amount and tenure.
         </p>
         

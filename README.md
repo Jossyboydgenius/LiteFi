@@ -107,10 +107,15 @@ cp .env.example .env.local
 ```
 
 Required environment variables:
-- `DATABASE_URL`: Database connection string
+- `DATABASE_URL`: PostgreSQL connection string (format: `postgresql://username:password@host:port/database?sslmode=require`)
 - `JWT_SECRET`: Secret key for JWT token generation
 - `ZEPTOMAIL_API_KEY`: ZeptoMail API key for email services
 - `ZEPTOMAIL_DOMAIN`: Your domain for email services
+
+**Database Setup:**
+- ✅ Configured for PostgreSQL (production-ready)
+- For GCP Cloud SQL: Use PostgreSQL connection string
+- See `DATABASE_MIGRATION_GUIDE.md` for detailed setup instructions
 
 ### Vercel Deployment
 
