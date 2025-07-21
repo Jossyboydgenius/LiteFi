@@ -14,5 +14,11 @@
     "env": {
       "PRISMA_GENERATE_DATAPROXY": "true"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ]
 }

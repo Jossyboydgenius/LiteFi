@@ -80,13 +80,56 @@ export async function POST(request: NextRequest) {
     // Generate unique application ID
     const applicationId = `BCR-${nanoid(8).toUpperCase()}`;
 
-    // Create loan application
+    // Create loan application with only valid LoanApplication fields
     const loanApplication = await prisma.loanApplication.create({
       data: {
-        ...validatedData,
+        // Loan details
+        loanAmount: validatedData.loanAmount,
+        tenure: validatedData.tenure,
         loanType: 'BUSINESS_CAR',
         userId: user.userId,
         applicationId,
+        
+        // Personal Information (fields that exist in LoanApplication model)
+        middleName: validatedData.middleName,
+        phoneNumber: validatedData.phoneNumber,
+        bvn: validatedData.bvn,
+        nin: validatedData.nin,
+        addressNumber: validatedData.addressNumber,
+        streetName: validatedData.streetName,
+        nearestBusStop: validatedData.nearestBusStop,
+        state: validatedData.state,
+        localGovernment: validatedData.localGovernment,
+        maritalStatus: validatedData.maritalStatus,
+        homeOwnership: validatedData.homeOwnership,
+        yearsInAddress: validatedData.yearsInAddress,
+        educationLevel: validatedData.educationLevel,
+        
+        // Business Information
+        businessName: validatedData.businessName,
+        businessDescription: validatedData.businessDescription,
+        industry: validatedData.industry,
+        businessAddress: validatedData.businessAddress,
+        workEmail: validatedData.workEmail,
+        
+        // Vehicle Information
+        vehicleMake: validatedData.vehicleMake,
+        vehicleModel: validatedData.vehicleModel,
+        vehicleYear: validatedData.vehicleYear,
+        vehicleAmount: validatedData.vehicleAmount,
+        
+        // Next of Kin
+        nokFirstName: validatedData.nokFirstName,
+        nokLastName: validatedData.nokLastName,
+        nokMiddleName: validatedData.nokMiddleName,
+        nokRelationship: validatedData.nokRelationship,
+        nokPhone: validatedData.nokPhone,
+        nokEmail: validatedData.nokEmail,
+        
+        // Financial Information
+        bankName: validatedData.bankName,
+        accountName: validatedData.accountName,
+        accountNumber: validatedData.accountNumber,
       },
       include: {
         user: {
@@ -110,6 +153,11 @@ export async function POST(request: NextRequest) {
         metadata: {
           loanType: 'BUSINESS_CAR',
           loanAmount: validatedData.loanAmount,
+          applicantInfo: {
+            phoneNumber: validatedData.phoneNumber,
+            state: validatedData.state,
+            localGovernment: validatedData.localGovernment,
+          },
           businessInfo: {
             name: validatedData.businessName,
             description: validatedData.businessDescription,

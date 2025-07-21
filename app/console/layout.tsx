@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
   title: 'Admin Dashboard - LiteFi',
@@ -10,5 +11,10 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <>
+      {children}
+      <Toaster position="top-right" richColors />
+    </>
+  )
 }
