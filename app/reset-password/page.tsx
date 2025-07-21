@@ -95,21 +95,20 @@ function ResetPasswordContent() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
       <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
-          <Image 
-            src={logoImage} 
-            alt="LiteFi Logo" 
-            width={100}
-            height={30}
-          />
-        </div>
-
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-black">Forgot Password</h1>
-          <p className="text-gray-500">Provide the following details to reset your password</p>
-        </div>
-
         <div className="bg-white p-8 rounded-lg shadow-lg mb-6">
+          <div className="flex justify-center mb-6">
+            <Image 
+              src={logoImage} 
+              alt="LiteFi Logo" 
+              width={100}
+              height={30}
+            />
+          </div>
+
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-2 text-black">Forgot Password</h1>
+            <p className="text-gray-500">Provide the following details to reset your password</p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-gray-800 font-medium">Email</Label>

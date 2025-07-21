@@ -198,7 +198,8 @@ export async function POST(
       data: {
         loanApplicationId: loanApplication.id,
         action: 'CREATED',
-        details: `Loan application ${applicationId} created for ${loanType}`,
+        performedBy: user.userId,
+        notes: `Loan application ${applicationId} created for ${loanType}`,
       },
     });
 
