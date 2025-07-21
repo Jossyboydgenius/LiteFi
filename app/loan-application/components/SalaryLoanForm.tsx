@@ -13,6 +13,7 @@ import { Upload, Camera } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
 import { states, getLGAsForState } from "@/lib/data/states";
 import { toast } from "sonner";
+import { useAutoSave, useFileAutoSave } from "@/hooks/useAutoSave";
 
 interface SalaryLoanFormProps {
   loanType: "salary-cash" | "salary-car";
@@ -37,13 +38,32 @@ interface UploadedDocs {
 
 export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
   const router = useRouter();
-  const [formData, setFormData] = useState<Record<string, string>>({});
-  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedDocs[string] | null>>({});
+  
+  // Auto-save functionality
+  const { data: formData, updateData: updateFormData, clearSavedData, hasSavedData } = useAutoSave<Record<string, string>>(
+    {},
+    {
+      key: `salary-loan-form-${loanType}`,
+      debounceMs: 1000,
+      excludeFields: ['password', 'confirmPassword'] // Exclude sensitive fields
+    }
+  );
+  
+  const { uploadedFiles, updateFiles, clearSavedFiles, hasSavedFiles } = useFileAutoSave(`salary-loan-files-${loanType}`);
+  
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
-  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>(formData.state || "");
   const [availableLGAs, setAvailableLGAs] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+
+  // Show restore prompt if there's saved data
+  useEffect(() => {
+    if (hasSavedData || hasSavedFiles) {
+      setShowRestorePrompt(true);
+    }
+  }, [hasSavedData, hasSavedFiles]);
 
   // Update available LGAs when selected state changes
   useEffect(() => {
@@ -55,11 +75,19 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
     }
   }, [selectedState]);
 
+  // Update selectedState when formData.state changes
+  useEffect(() => {
+    if (formData.state && formData.state !== selectedState) {
+      setSelectedState(formData.state);
+    }
+  }, [formData.state, selectedState]);
+
   const handleInputChange = (field: string, value: string, fieldType?: string) => {
+    let processedValue = value;
+    
     // For number fields (amount fields), format the value with commas
     if (fieldType === "number" && (field.includes('Amount') || field.includes('Salary') || field.includes('Vehicle'))) {
-      const formattedValue = formatAmount(value);
-      setFormData(prev => ({ ...prev, [field]: formattedValue }));
+      processedValue = formatAmount(value);
     } 
     // For phone number, BVN, NIN, account number - only allow numbers and limit length
     else if (field === 'phoneNumber' || field === 'bvn' || field === 'nin' || field === 'accountNumber' || field === 'kinPhoneNumber') {
@@ -67,24 +95,23 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       const numericValue = value.replace(/\D/g, '');
       
       // Apply length limits
-      let limitedValue = numericValue;
       if (field === 'bvn' || field === 'nin') {
-        limitedValue = numericValue.slice(0, 11); // 11 digits max for BVN and NIN
+        processedValue = numericValue.slice(0, 11); // 11 digits max for BVN and NIN
       } else if (field === 'phoneNumber' || field === 'kinPhoneNumber') {
-        limitedValue = numericValue.slice(0, 11); // 11 digits max for phone numbers
+        processedValue = numericValue.slice(0, 11); // 11 digits max for phone numbers
       } else if (field === 'accountNumber') {
-        limitedValue = numericValue.slice(0, 10); // 10 digits max for account number
+        processedValue = numericValue.slice(0, 10); // 10 digits max for account number
       }
-      
-      setFormData(prev => ({ ...prev, [field]: limitedValue }));
-    } else {
-      setFormData(prev => ({ ...prev, [field]: value }));
     }
+    
+    // Use auto-save hook to update data
+    updateFormData(field, processedValue);
   };
 
   const handleStateChange = (value: string) => {
     setSelectedState(value);
-    setFormData(prev => ({ ...prev, state: value, localGovernment: "" }));
+    updateFormData('state', value);
+    updateFormData('localGovernment', ''); // Clear local government when state changes
   };
 
   const handleFileUpload = async (docName: string, file?: File) => {
@@ -115,13 +142,14 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         const result = await response.json();
         
         // Store both the file and the temporary upload result
-        setUploadedFiles(prev => ({ 
-          ...prev, 
+        const newFiles = { 
+          ...uploadedFiles, 
           [docName]: {
             file,
             tempFile: result.tempFile
           }
-        }));
+        };
+        updateFiles(newFiles);
         setUploadProgress(prev => ({ ...prev, [docName]: 100 }));
         
         setTimeout(() => {
@@ -244,6 +272,10 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
          await Promise.all(documentAssociations);
        }
 
+       // Clear saved form data after successful submission
+       clearSavedData();
+       clearSavedFiles();
+       
        toast.success("Loan application submitted successfully! We'll review your application and get back to you within 24-48 hours.");
        
        // Add delay before redirecting to allow user to see the toast
@@ -388,7 +420,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         return (
           <Select 
             value={(formData[field.name] as string) || ""} 
-            onValueChange={(value) => handleInputChange(field.name, value)}
+            onValueChange={(value) => updateFormData(field.name, value)}
           >
             <SelectTrigger className="text-black">
               <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
@@ -610,10 +642,58 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
     ]
   };
 
+  const handleRestoreData = () => {
+    setShowRestorePrompt(false);
+    toast.success('Previous form data restored successfully!');
+  };
+
+  const handleDiscardData = () => {
+    clearSavedData();
+    clearSavedFiles();
+    setShowRestorePrompt(false);
+    toast.success('Previous form data cleared.');
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-sm border p-8">
+          {/* Restore Data Prompt */}
+          {showRestorePrompt && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-blue-800 mb-1">
+                    Resume Previous Application
+                  </h3>
+                  <p className="text-sm text-blue-600">
+                    We found a previously saved application. Would you like to continue where you left off?
+                  </p>
+                </div>
+                <div className="flex space-x-2 ml-4">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRestoreData}
+                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  >
+                    Continue
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleDiscardData}
+                    className="text-gray-600 hover:bg-gray-100"
+                  >
+                    Start Fresh
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">{config.title}</h1>
             <p className="text-gray-600 mt-2">{config.description}</p>
@@ -649,38 +729,59 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
                 <div key={doc} className="border rounded-lg p-4 space-y-2">
                   <p className="text-sm font-medium text-gray-700">{doc}</p>
                   <div className="space-y-2">
-                    <Button
-                      type="button"
-                      variant={uploadedFiles[doc] ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        // Set proper accept attribute based on document type
-                        const documentType = getDocumentType(doc);
-                        if (documentType === 'SELFIE') {
-                          input.accept = 'image/jpeg,image/png,image/webp,image/jpg';
-                        } else {
-                          input.accept = 'image/jpeg,image/png,image/webp,image/jpg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-                        }
-                        input.onchange = async (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          if (file) {
-                            await handleFileUpload(doc, file);
+                    <div className="relative group">
+                      <Button
+                        type="button"
+                        variant={uploadedFiles[doc] ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          // Set proper accept attribute based on document type
+                          const documentType = getDocumentType(doc);
+                          if (documentType === 'SELFIE') {
+                            input.accept = 'image/jpeg,image/png,image/webp,image/jpg';
+                          } else {
+                            input.accept = 'image/jpeg,image/png,image/webp,image/jpg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
                           }
-                        };
-                        input.click();
-                      }}
-                      className="w-full"
-                      disabled={isUploading[doc]}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      {isUploading[doc] ? "Uploading..." : uploadedFiles[doc] ? "Uploaded ✓" : "Upload File"}
-                    </Button>
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) {
+                              await handleFileUpload(doc, file);
+                            }
+                          };
+                          input.click();
+                        }}
+                        className="w-full transition-all duration-200"
+                        disabled={isUploading[doc]}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        <span className="group-hover:hidden">
+                          {isUploading[doc] ? "Uploading..." : uploadedFiles[doc] ? "Uploaded ✓" : "Upload File"}
+                        </span>
+                        {uploadedFiles[doc] && (
+                          <span className="hidden group-hover:inline">
+                            Replace File
+                          </span>
+                        )}
+                      </Button>
+                      {uploadedFiles[doc] && (
+                        <div className="absolute inset-0 bg-blue-50 border border-blue-200 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
+                          <span className="text-blue-600 text-sm font-medium">Click to Replace</span>
+                        </div>
+                      )}
+                    </div>
                     {isUploading[doc] && (
                       <div className="space-y-1">
                         <Progress value={uploadProgress[doc] || 0} className="h-2" />
                         <p className="text-xs text-gray-500">{uploadProgress[doc] || 0}% uploaded</p>
+                      </div>
+                    )}
+                    {uploadedFiles[doc] && !isUploading[doc] && (
+                      <div className="text-xs text-gray-500">
+                        <p>File: {uploadedFiles[doc].tempFile?.fileName}</p>
+                        <p>Size: {(uploadedFiles[doc].tempFile?.fileSize / 1024).toFixed(1)} KB</p>
+                        <p>Type: {uploadedFiles[doc].tempFile?.mimeType}</p>
                       </div>
                     )}
                   </div>
