@@ -69,10 +69,48 @@ export async function POST(request: NextRequest) {
     // Create loan application
     const loanApplication = await prisma.loanApplication.create({
       data: {
-        ...validatedData,
+        // Loan details
+        loanAmount: validatedData.loanAmount,
+        tenure: validatedData.tenure,
         loanType: 'BUSINESS_CASH',
         userId: user.userId,
         applicationId,
+        
+        // Personal Information
+        // Note: firstName and lastName are stored in the User model, not in LoanApplication
+        middleName: validatedData.middleName,
+        phoneNumber: validatedData.phoneNumber,
+        bvn: validatedData.bvn,
+        nin: validatedData.nin,
+        addressNumber: validatedData.addressNumber,
+        streetName: validatedData.streetName,
+        nearestBusStop: validatedData.nearestBusStop,
+        state: validatedData.state,
+        localGovernment: validatedData.localGovernment,
+        maritalStatus: validatedData.maritalStatus,
+        homeOwnership: validatedData.homeOwnership,
+        yearsInAddress: validatedData.yearsInAddress,
+        educationLevel: validatedData.educationLevel,
+        
+        // Business Information
+        businessName: validatedData.businessName,
+        businessDescription: validatedData.businessDescription,
+        industry: validatedData.industry,
+        businessAddress: validatedData.businessAddress,
+        workEmail: validatedData.workEmail,
+        
+        // Next of Kin
+        nokFirstName: validatedData.nokFirstName,
+        nokLastName: validatedData.nokLastName,
+        nokMiddleName: validatedData.nokMiddleName,
+        nokRelationship: validatedData.nokRelationship,
+        nokPhone: validatedData.nokPhone,
+        nokEmail: validatedData.nokEmail,
+        
+        // Financial Information
+        bankName: validatedData.bankName,
+        accountName: validatedData.accountName,
+        accountNumber: validatedData.accountNumber,
       },
       include: {
         user: {
