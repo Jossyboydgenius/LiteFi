@@ -188,6 +188,9 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       toast.error('Please fill in all required fields');
       return;
     }
+    
+    // Clear any previous error toasts to prevent confusion
+    toast.dismiss();
 
     try {
        setIsSubmitting(true);
@@ -195,12 +198,10 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
        // Convert yearsInCurrentAddress to number
        const getYearsInAddress = (value: string): number => {
          if (!value) return 1;
-         if (value === "Less than 1 year") return 1;
-         if (value === "1-2 years") return 1;
-         if (value === "2-5 years") return 3;
-         if (value === "5-10 years") return 7;
-         if (value === "10+ years") return 10;
-         return 1;
+         // Try to parse the input as a number
+         const parsedValue = parseFloat(value);
+         // If it's a valid number, return it, otherwise return 1
+         return isNaN(parsedValue) ? 1 : parsedValue;
        };
        
        // Prepare loan application data with proper field mapping
@@ -518,7 +519,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
           { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
-          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "text", required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
         ]
@@ -595,7 +596,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
           { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
-          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "text", required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
         ]
