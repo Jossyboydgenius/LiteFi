@@ -124,39 +124,46 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       setUploadProgress(prev => ({ ...prev, [docName]: 0 }));
       
       try {
-        // Create FormData for temporary file upload
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', file);
-        uploadFormData.append('documentType', getDocumentType(docName));
+        // Mock upload with progress simulation
+        const mockUpload = () => {
+          return new Promise<void>((resolve) => {
+            let progress = 0;
+            const interval = setInterval(() => {
+              progress += Math.random() * 30;
+              if (progress >= 100) {
+                progress = 100;
+                setUploadProgress(prev => ({ ...prev, [docName]: progress }));
+                clearInterval(interval);
+                resolve();
+              } else {
+                setUploadProgress(prev => ({ ...prev, [docName]: progress }));
+              }
+            }, 200);
+          });
+        };
+
+        await mockUpload();
         
-        // Upload file temporarily to server
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: uploadFormData
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to upload ${docName}`);
-        }
-        
-        const result = await response.json();
+        // Mock successful upload result
+        const mockTempFile = {
+          fileName: file.name,
+          filePath: `temp/${Date.now()}-${file.name}`,
+          fileSize: file.size,
+          mimeType: file.type,
+          documentType: getDocumentType(docName)
+        };
         
         // Store both the file and the temporary upload result
         const updatedFiles = {
           ...uploadedFiles,
           [docName]: {
             file,
-            tempFile: result.tempFile
+            tempFile: mockTempFile
           }
         };
         
         setUploadedFiles(updatedFiles);
         updateFiles(updatedFiles);
-        setUploadProgress(prev => ({ ...prev, [docName]: 100 }));
         
         setTimeout(() => {
           setIsUploading(prev => ({ ...prev, [docName]: false }));
@@ -305,28 +312,24 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
   };
 
   const associateDocument = async (applicationId: string, docName: string, tempFile: any) => {
-    const response = await fetch('/api/upload/associate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({
-        applicationId,
-        tempFilePath: tempFile.filePath,
-        documentType: tempFile.documentType,
-        fileName: tempFile.fileName,
-        fileSize: tempFile.fileSize,
-        mimeType: tempFile.mimeType
-      })
+    // Mock document association - simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log(`Mock: Document ${docName} associated successfully with application ${applicationId}`);
+    console.log('Mock association data:', {
+      applicationId,
+      tempFilePath: tempFile.filePath,
+      documentType: tempFile.documentType,
+      fileName: tempFile.fileName,
+      fileSize: tempFile.fileSize,
+      mimeType: tempFile.mimeType
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to associate ${docName}`);
-    }
-
-    return response.json();
+    return {
+      success: true,
+      documentId: `mock-doc-${Date.now()}`,
+      message: `Document ${docName} associated successfully`
+    };
   };
 
   const isFormValid = () => {
