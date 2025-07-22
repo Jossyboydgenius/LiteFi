@@ -101,6 +101,11 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         processedValue = numericValue.slice(0, 10); // 10 digits max for account number
       }
     }
+    // For years in current address - only allow numbers, max 2 digits
+    else if (field === 'yearsInCurrentAddress') {
+      const numericValue = value.replace(/\D/g, '');
+      processedValue = numericValue.slice(0, 2); // Max 2 digits (0-99 years)
+    }
     
     setFormData(prev => ({ ...prev, [field]: processedValue }));
     updateData(field, processedValue);
@@ -195,12 +200,8 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
        // Convert yearsInCurrentAddress to number
        const getYearsInAddress = (value: string): number => {
          if (!value) return 1;
-         if (value === "Less than 1 year") return 1;
-         if (value === "1-2 years") return 1;
-         if (value === "2-5 years") return 3;
-         if (value === "5-10 years") return 7;
-         if (value === "10+ years") return 10;
-         return 1;
+         const numericValue = parseInt(value);
+         return isNaN(numericValue) || numericValue < 1 ? 1 : numericValue;
        };
        
        // Prepare loan application data with proper field mapping
@@ -366,6 +367,23 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           />
         );
       case "number":
+        // Special handling for yearsInCurrentAddress - should be a number input
+        if (field.name === "yearsInCurrentAddress") {
+          return (
+            <Input
+              id={field.name}
+              type="number"
+              value={(formData[field.name] as string) || ""}
+              onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
+              className="text-black placeholder:text-gray-500"
+              required={field.required}
+              placeholder="Enter number of years"
+              min="1"
+              max="99"
+            />
+          );
+        }
+        // For other number fields like loan amount, keep as text with formatting
         return (
           <Input
             id={field.name}
@@ -518,7 +536,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
           { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
-          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "number", required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
         ]
@@ -595,7 +613,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
           { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
-          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "number", required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
         ]
