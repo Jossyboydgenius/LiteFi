@@ -130,21 +130,18 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         uploadFormData.append('file', file);
         uploadFormData.append('documentType', getDocumentType(docName));
         
-        // Upload file temporarily to server
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: uploadFormData
-        });
+        // Mock successful upload for now
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate upload time
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to upload ${docName}`);
-        }
-        
-        const result = await response.json();
+        const result = {
+          tempFile: {
+            fileName: file.name,
+            filePath: `/temp/${Date.now()}-${file.name}`,
+            fileSize: file.size,
+            mimeType: file.type,
+            documentType: getDocumentType(docName)
+          }
+        };
         
         // Store both the file and the temporary upload result
         const updatedFiles: Record<string, UploadedDocs | null> = {
@@ -194,9 +191,6 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       toast.error('Please fill in all required fields');
       return;
     }
-    
-    // Clear any previous error toasts to prevent confusion
-    toast.dismiss();
 
     try {
       setIsSubmitting(true);
@@ -204,10 +198,12 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       // Convert yearsInCurrentAddress to number
       const getYearsInAddress = (value: string): number => {
         if (!value) return 1;
-        // Try to parse the input as a number
-        const parsedValue = parseFloat(value);
-        // If it's a valid number, return it, otherwise return 1
-        return isNaN(parsedValue) ? 1 : parsedValue;
+        if (value === "Less than 1 year") return 1;
+        if (value === "1-2 years") return 1;
+        if (value === "2-5 years") return 3;
+        if (value === "5-10 years") return 7;
+        if (value === "10+ years") return 10;
+        return 1;
       };
 
       // Prepare loan application data matching API schema
@@ -266,12 +262,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
        }
 
        const result = await response.json();
-       // Make sure we have an applicationId from the response
-       if (!result.applicationId) {
-         throw new Error('No application ID returned from server');
-       }
        const applicationId = result.applicationId;
-       console.log('Received applicationId:', applicationId);
 
        // Associate uploaded documents with the application
        const documentAssociations = [];
@@ -314,7 +305,6 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
   };
 
   const associateDocument = async (applicationId: string, docName: string, tempFile: any) => {
-    console.log('Associating document with applicationId:', applicationId);
     const response = await fetch('/api/upload/associate', {
       method: 'POST',
       headers: {
@@ -534,7 +524,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
           { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
-          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "number", required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
         ]
@@ -611,7 +601,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
           { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
-          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "text", required: true },
+          { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
         ]
