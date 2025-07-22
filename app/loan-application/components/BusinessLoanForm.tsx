@@ -333,6 +333,8 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       ? ['loanAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'businessName', 'businessDescription', 'industry', 'businessAddress', 'workEmail', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber']
       : ['loanAmount', 'vehicleMake', 'vehicleModel', 'vehicleYear', 'vehicleAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'businessName', 'businessDescription', 'industry', 'businessAddress', 'workEmail', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber'];
     
+    // Only check if all required form fields are filled
+    // Documents (including selfie) are optional and don't prevent form submission
     return requiredFields.every(field => formData[field]);
   };
 
