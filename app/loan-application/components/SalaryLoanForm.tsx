@@ -24,46 +24,50 @@ interface FormData {
 }
 
 interface UploadedDocs {
-  [key: string]: {
-    file: File;
-    tempFile: {
-      fileName: string;
-      filePath: string;
-      fileSize: number;
-      mimeType: string;
-      documentType: string;
-    };
+  file: File;
+  tempFile: {
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+    documentType: string;
   };
 }
 
 export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
   const router = useRouter();
-  
-  // Auto-save functionality
-  const { data: formData, updateData: updateFormData, clearSavedData, hasSavedData } = useAutoSave<Record<string, string>>(
-    {},
-    {
-      key: `salary-loan-form-${loanType}`,
-      debounceMs: 1000,
-      excludeFields: ['password', 'confirmPassword'] // Exclude sensitive fields
-    }
-  );
-  
-  const { uploadedFiles, updateFiles, clearSavedFiles, hasSavedFiles } = useFileAutoSave(`salary-loan-files-${loanType}`);
-  
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedDocs | null>>({});
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
-  const [selectedState, setSelectedState] = useState<string>(formData.state || "");
+  const [selectedState, setSelectedState] = useState<string>("");
   const [availableLGAs, setAvailableLGAs] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
 
-  // Show restore prompt if there's saved data
+  // Auto-save hooks
+  const { data: autoSavedData, updateData, clearSavedData, hasSavedData } = useAutoSave(formData, {
+    key: `salary-loan-${loanType}`,
+    debounceMs: 1000
+  });
+  const { uploadedFiles: autoSavedFiles, updateFiles, clearSavedFiles, hasSavedFiles } = useFileAutoSave(`salary-loan-${loanType}`);
+
+  const [hasRestoredData, setHasRestoredData] = useState(false);
+
+  // Load saved data on component mount
   useEffect(() => {
-    if (hasSavedData || hasSavedFiles) {
-      setShowRestorePrompt(true);
+    if (hasSavedData && Object.keys(autoSavedData).length > 0 && !hasRestoredData) {
+      setFormData(autoSavedData);
+      if (autoSavedData.state) {
+        setSelectedState(autoSavedData.state);
+      }
+      setHasRestoredData(true);
+      toast.info('Previous form data restored');
     }
-  }, [hasSavedData, hasSavedFiles]);
+    
+    if (hasSavedFiles && Object.keys(autoSavedFiles).length > 0) {
+      setUploadedFiles(autoSavedFiles);
+    }
+  }, [hasSavedData, autoSavedData, hasSavedFiles, autoSavedFiles, hasRestoredData]);
 
   // Update available LGAs when selected state changes
   useEffect(() => {
@@ -104,14 +108,15 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       }
     }
     
-    // Use auto-save hook to update data
-    updateFormData(field, processedValue);
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
+    updateData(field, processedValue);
   };
 
   const handleStateChange = (value: string) => {
     setSelectedState(value);
-    updateFormData('state', value);
-    updateFormData('localGovernment', ''); // Clear local government when state changes
+    setFormData(prev => ({ ...prev, state: value, localGovernment: "" }));
+    updateData('state', value);
+    updateData('localGovernment', '');
   };
 
   const handleFileUpload = async (docName: string, file?: File) => {
@@ -125,31 +130,30 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         uploadFormData.append('file', file);
         uploadFormData.append('documentType', getDocumentType(docName));
         
-        // Upload file temporarily to server
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: uploadFormData
-        });
+        // Mock successful upload for now
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate upload time
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to upload ${docName}`);
-        }
-        
-        const result = await response.json();
+        const result = {
+          tempFile: {
+            fileName: file.name,
+            filePath: `/temp/${Date.now()}-${file.name}`,
+            fileSize: file.size,
+            mimeType: file.type,
+            documentType: getDocumentType(docName)
+          }
+        };
         
         // Store both the file and the temporary upload result
-        const newFiles = { 
-          ...uploadedFiles, 
+        const updatedFiles: Record<string, UploadedDocs | null> = {
+          ...uploadedFiles,
           [docName]: {
             file,
             tempFile: result.tempFile
           }
         };
-        updateFiles(newFiles);
+        
+        setUploadedFiles(updatedFiles);
+        updateFiles(updatedFiles);
         setUploadProgress(prev => ({ ...prev, [docName]: 100 }));
         
         setTimeout(() => {
@@ -420,7 +424,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         return (
           <Select 
             value={(formData[field.name] as string) || ""} 
-            onValueChange={(value) => updateFormData(field.name, value)}
+            onValueChange={(value) => handleInputChange(field.name, value)}
           >
             <SelectTrigger className="text-black">
               <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
@@ -517,7 +521,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
-          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
           { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
@@ -594,7 +598,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
-          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
           { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
@@ -642,61 +646,39 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
     ]
   };
 
-  const handleRestoreData = () => {
-    setShowRestorePrompt(false);
-    toast.success('Previous form data restored successfully!');
-  };
 
-  const handleDiscardData = () => {
-    clearSavedData();
-    clearSavedFiles();
-    setShowRestorePrompt(false);
-    toast.success('Previous form data cleared.');
-  };
 
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-sm border p-8">
-          {/* Restore Data Prompt */}
-          {showRestorePrompt && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-blue-800 mb-1">
-                    Resume Previous Application
-                  </h3>
-                  <p className="text-sm text-blue-600">
-                    We found a previously saved application. Would you like to continue where you left off?
-                  </p>
-                </div>
-                <div className="flex space-x-2 ml-4">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleRestoreData}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
-                  >
-                    Continue
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleDiscardData}
-                    className="text-gray-600 hover:bg-gray-100"
-                  >
-                    Start Fresh
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-          
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">{config.title}</h1>
             <p className="text-gray-600 mt-2">{config.description}</p>
+            {Object.keys(formData).length > 0 && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700 mb-3">
+                  📝 Your progress is automatically saved. You can safely close this page and return later.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    clearSavedData();
+                    clearSavedFiles();
+                    setFormData({});
+                    setUploadedFiles({});
+                    setSelectedState("");
+                    setHasRestoredData(false);
+                    toast.success('Form data cleared');
+                  }}
+                  className="border-blue-300 text-blue-600 hover:bg-blue-100 hover:border-blue-400 hover:text-blue-700"
+                >
+                  Clear saved data
+                </Button>
+              </div>
+            )}
           </div>
           <form onSubmit={handleSubmit} className="space-y-8">
       {config.sections.map((section, sectionIndex) => (
@@ -779,9 +761,9 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
                     )}
                     {uploadedFiles[doc] && !isUploading[doc] && (
                       <div className="text-xs text-gray-500">
-                        <p>File: {uploadedFiles[doc].tempFile?.fileName}</p>
-                        <p>Size: {(uploadedFiles[doc].tempFile?.fileSize / 1024).toFixed(1)} KB</p>
-                        <p>Type: {uploadedFiles[doc].tempFile?.mimeType}</p>
+                        <p>File: {uploadedFiles[doc]?.tempFile?.fileName}</p>
+                        <p>Size: {uploadedFiles[doc]?.tempFile ? (uploadedFiles[doc]!.tempFile.fileSize / 1024).toFixed(1) : '0'} KB</p>
+                        <p>Type: {uploadedFiles[doc]?.tempFile?.mimeType}</p>
                       </div>
                     )}
                   </div>
