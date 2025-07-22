@@ -120,25 +120,39 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
 
   const handleFileUpload = async (docName: string, file?: File) => {
     if (file) {
+      // Check file size (10MB = 10 * 1024 * 1024 bytes)
+      const maxFileSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxFileSize) {
+        toast.error(`File size exceeds 10MB limit. Please select a smaller file.`);
+        return;
+      }
+
       setIsUploading(prev => ({ ...prev, [docName]: true }));
       setUploadProgress(prev => ({ ...prev, [docName]: 0 }));
       
       try {
-        // Mock upload with progress simulation
+        // Mock upload with random upload time (1-5 seconds)
         const mockUpload = () => {
           return new Promise<void>((resolve) => {
+            // Random upload duration between 1-5 seconds
+            const totalUploadTime = Math.floor(Math.random() * 4000) + 1000; // 1000-5000ms
+            const updateInterval = 200; // Update progress every 200ms
+            const totalSteps = totalUploadTime / updateInterval;
+            const progressIncrement = 100 / totalSteps;
+            
             let progress = 0;
             const interval = setInterval(() => {
-              progress += Math.random() * 30;
+              // Add some randomness to each progress increment
+              progress += progressIncrement * (0.5 + Math.random());
               if (progress >= 100) {
                 progress = 100;
-                setUploadProgress(prev => ({ ...prev, [docName]: progress }));
+                setUploadProgress(prev => ({ ...prev, [docName]: Math.round(progress) }));
                 clearInterval(interval);
                 resolve();
               } else {
-                setUploadProgress(prev => ({ ...prev, [docName]: progress }));
+                setUploadProgress(prev => ({ ...prev, [docName]: Math.round(progress) }));
               }
-            }, 200);
+            }, updateInterval);
           });
         };
 
@@ -312,8 +326,9 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
   };
 
   const associateDocument = async (applicationId: string, docName: string, tempFile: any) => {
-    // Mock document association - simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Mock document association - simulate API call with random delay (100-500ms)
+    const delay = Math.floor(Math.random() * 400) + 100;
+    await new Promise(resolve => setTimeout(resolve, delay));
     
     console.log(`Mock: Document ${docName} associated successfully with application ${applicationId}`);
     console.log('Mock association data:', {
