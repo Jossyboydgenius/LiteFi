@@ -562,7 +562,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
-          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family"], required: true },
           { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "number", required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
@@ -639,7 +639,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
-          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family"], required: true },
           { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "number", required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
