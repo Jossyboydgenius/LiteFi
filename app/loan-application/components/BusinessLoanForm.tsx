@@ -52,20 +52,23 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
   });
   const { uploadedFiles: autoSavedFiles, updateFiles, clearSavedFiles, hasSavedFiles } = useFileAutoSave(`business-loan-${loanType}`);
 
+  const [hasRestoredData, setHasRestoredData] = useState(false);
+
   // Load saved data on component mount
   useEffect(() => {
-    if (hasSavedData && Object.keys(autoSavedData).length > 0) {
+    if (hasSavedData && Object.keys(autoSavedData).length > 0 && !hasRestoredData) {
       setFormData(autoSavedData);
       if (autoSavedData.state) {
         setSelectedState(autoSavedData.state);
       }
+      setHasRestoredData(true);
       toast.info('Previous form data restored');
     }
     
     if (hasSavedFiles && Object.keys(autoSavedFiles).length > 0) {
       setUploadedFiles(autoSavedFiles);
     }
-  }, [hasSavedData, autoSavedData, hasSavedFiles, autoSavedFiles]);
+  }, [hasSavedData, autoSavedData, hasSavedFiles, autoSavedFiles, hasRestoredData]);
 
   // Update available LGAs when selected state changes
   useEffect(() => {
@@ -189,6 +192,17 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
     try {
        setIsSubmitting(true);
        
+       // Convert yearsInCurrentAddress to number
+       const getYearsInAddress = (value: string): number => {
+         if (!value) return 1;
+         if (value === "Less than 1 year") return 1;
+         if (value === "1-2 years") return 1;
+         if (value === "2-5 years") return 3;
+         if (value === "5-10 years") return 7;
+         if (value === "10+ years") return 10;
+         return 1;
+       };
+       
        // Prepare loan application data with proper field mapping
        const loanData = {
          loanAmount: parseFloat(formData.loanAmount?.replace(/,/g, '') || '0'),
@@ -210,7 +224,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
          state: formData.state,
          localGovernment: formData.localGovernment,
          homeOwnership: formData.homeOwnership?.toUpperCase() as any,
-         yearsInAddress: parseInt(formData.yearsInCurrentAddress || '0'),
+         yearsInAddress: getYearsInAddress(formData.yearsInCurrentAddress || ''),
          maritalStatus: formData.maritalStatus?.toUpperCase() as any,
          educationLevel: formData.highestEducation,
          businessName: formData.businessName,
@@ -501,7 +515,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
-          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
           { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
@@ -578,7 +592,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           { name: "nearestBusStop", label: "Nearest Bus Stop", type: "text", required: true },
           { name: "state", label: "State", type: "select", required: true },
           { name: "localGovernment", label: "Local Government", type: "select", required: true },
-          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family House", "Other"], required: true },
+          { name: "homeOwnership", label: "Home Ownership", type: "select", options: ["Owned", "Rented", "Family", "Other"], required: true },
           { name: "yearsInCurrentAddress", label: "Years in Current Address", type: "select", options: ["Less than 1 year", "1-2 years", "2-5 years", "5-10 years", "10+ years"], required: true },
           { name: "maritalStatus", label: "Marital Status", type: "select", options: ["Single", "Married", "Divorced", "Widowed"], required: true },
           { name: "highestEducation", label: "Highest Level of Education", type: "select", options: ["Primary", "Secondary", "OND/NCE", "HND/Bachelor's", "Master's", "PhD", "Other"], required: true }
@@ -635,25 +649,26 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
             <p className="text-gray-600 mt-2">{config.description}</p>
             {Object.keys(formData).length > 0 && (
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-700">
+                <p className="text-sm text-blue-700 mb-3">
                   📝 Your progress is automatically saved. You can safely close this page and return later.
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      clearSavedData();
-                      clearSavedFiles();
-                      setFormData({});
-                      setUploadedFiles({});
-                      setSelectedState("");
-                      toast.success('Form data cleared');
-                    }}
-                    className="ml-2 text-blue-600 hover:text-blue-800 p-0 h-auto"
-                  >
-                    Clear saved data
-                  </Button>
                 </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    clearSavedData();
+                    clearSavedFiles();
+                    setFormData({});
+                    setUploadedFiles({});
+                    setSelectedState("");
+                    setHasRestoredData(false);
+                    toast.success('Form data cleared');
+                  }}
+                  className="border-blue-300 text-blue-600 hover:bg-blue-100 hover:border-blue-400 hover:text-blue-700"
+                >
+                  Clear saved data
+                </Button>
               </div>
             )}
           </div>
