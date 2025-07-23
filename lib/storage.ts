@@ -1,22 +1,16 @@
-import { Storage } from '@google-cloud/storage'
+import { uploadToCloudinary, deleteFromCloudinary, moveFileInCloudinary, CloudinaryUploadResult } from './cloudinary'
 import { nanoid } from 'nanoid'
 import fs from 'fs'
 import path from 'path'
 
-// Check if running in development mode without GCP credentials
+// Check if Cloudinary is configured
+const hasCloudinaryConfig = process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_SECRET
 const isDevelopment = process.env.NODE_ENV === 'development'
-const hasGCPCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)
 
-let storage: Storage | null = null
-let bucket: any = null
-
-// Initialize Google Cloud Storage only if credentials are available
-if (hasGCPCredentials) {
-  storage = new Storage({
-    projectId: process.env.GCP_PROJECT_ID,
-    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-  })
-  bucket = storage.bucket(process.env.GCS_BUCKET_NAME!)
+if (hasCloudinaryConfig) {
+  console.log('Initialized Cloudinary for file uploads')
+} else {
+  console.log('Cloudinary not configured, using local storage fallback')
 }
 
 export interface UploadResult {
@@ -41,94 +35,96 @@ export async function uploadFile(
   folder?: string
 ): Promise<UploadResult> {
   try {
-    // Generate unique filename
-    const fileExtension = originalName.split('.').pop()
-    const uniqueId = nanoid(10)
-    const fileName = `${uniqueId}.${fileExtension}`
-    const filePath = folder ? `${folder}/${fileName}` : fileName
+    console.log(`Uploading file: ${originalName}`);
+    console.log(`File size: ${file.length} bytes`);
+    console.log(`MIME type: ${mimeType}`);
+    console.log(`Using Cloudinary: ${hasCloudinaryConfig ? 'Yes' : 'No (local fallback)'}`);
     
-    // Use Google Cloud Storage if available, otherwise use local storage
-    if (hasGCPCredentials && bucket) {
-      // Create file reference
-      const fileRef = bucket.file(filePath)
-      
-      // Upload file
-      const stream = fileRef.createWriteStream({
-        metadata: {
-          contentType: mimeType,
-          cacheControl: 'public, max-age=31536000', // 1 year cache
-        },
-        public: true, // Make file publicly accessible
-      })
-      
-      return new Promise((resolve, reject) => {
-        stream.on('error', (error: Error) => {
-          console.error('Upload error:', error)
-          reject(new Error(`Upload failed: ${error.message}`))
-        })
+    // Use Cloudinary if configured, otherwise use local storage
+    if (hasCloudinaryConfig) {
+      try {
+        const cloudinaryResult = await uploadToCloudinary(file, originalName, mimeType, folder);
         
-        stream.on('finish', async () => {
-          try {
-            // Make file public
-            await fileRef.makePublic()
-            
-            const publicUrl = `${process.env.CDN_BASE_URL}/${process.env.GCS_BUCKET_NAME}/${filePath}`
-            
-            resolve({
-              fileName,
-              filePath,
-              publicUrl,
-              fileSize: file.length,
-            })
-          } catch (error) {
-            reject(error)
-          }
-        })
-        
-        stream.end(file)
-      })
-    } else {
-      // Fallback to local storage for development
-      console.log('Using local storage fallback (GCP credentials not found)')
-      
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-      const folderPath = folder ? path.join(uploadsDir, folder) : uploadsDir
-      
-      if (!fs.existsSync(folderPath)) {
-        fs.mkdirSync(folderPath, { recursive: true })
-      }
-      
-      // Write file to local storage
-      const localFilePath = path.join(folderPath, fileName)
-      fs.writeFileSync(localFilePath, file)
-      
-      // Return mock result for local development
-      const publicUrl = `/uploads/${filePath}`
-      
-      return {
-        fileName,
-        filePath,
-        publicUrl,
-        fileSize: file.length,
+        return {
+          fileName: cloudinaryResult.fileName,
+          filePath: cloudinaryResult.filePath,
+          publicUrl: cloudinaryResult.publicUrl,
+          fileSize: cloudinaryResult.fileSize,
+        };
+      } catch (error) {
+        console.error('Cloudinary upload failed, falling back to local storage:', error);
+        // Fall through to local storage
       }
     }
+    
+    // Fallback to local storage
+    console.log('Using local storage fallback');
+    
+    // Generate unique filename for local storage
+    const fileExtension = originalName.split('.').pop();
+    const uniqueId = nanoid(10);
+    const fileName = `${uniqueId}.${fileExtension}`;
+    
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+    
+    // Use the same folder structure as Cloudinary
+    let storagePath: string;
+    if (folder === 'temp') {
+      storagePath = 'temp';
+    } else if (folder === 'documents' || folder === 'profiles' || folder === 'investments') {
+      storagePath = folder;
+    } else if (folder) {
+      storagePath = `documents/${folder}`;
+    } else {
+      storagePath = 'documents/general';
+    }
+    
+    const folderPath = path.join(uploadsDir, storagePath);
+    
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
+    
+    // Write file to local storage
+    const localFilePath = path.join(folderPath, fileName);
+    fs.writeFileSync(localFilePath, file);
+    
+    // Return result for local development
+    const filePath = `${storagePath}/${fileName}`;
+    const publicUrl = `/uploads/${filePath}`;
+    
+    console.log(`File uploaded successfully to local storage: ${localFilePath}`);
+    console.log(`Public URL: ${publicUrl}`);
+    
+    return {
+      fileName: originalName,
+      filePath,
+      publicUrl,
+      fileSize: file.length,
+    };
   } catch (error) {
-    console.error('Storage upload error:', error)
-    throw new Error(`Failed to upload file: ${error}`)
+    console.error('Storage upload error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 /**
- * Delete a file from Google Cloud Storage or local storage
+ * Delete a file from Cloudinary or local storage
  * @param filePath - Path to the file in storage
  */
 export async function deleteFile(filePath: string): Promise<void> {
   try {
-    if (hasGCPCredentials && bucket) {
-      const fileRef = bucket.file(filePath)
-      await fileRef.delete()
-      console.log(`File ${filePath} deleted successfully from GCS`)
+    if (hasCloudinaryConfig) {
+      // Extract public ID from file path for Cloudinary
+      const publicId = filePath.replace(/^litefi\//, 'litefi/')
+      const isImage = filePath.includes('/profiles/') || filePath.includes('/images/')
+      await deleteFromCloudinary(publicId, isImage ? 'image' : 'raw')
+      console.log(`File ${filePath} deleted successfully from Cloudinary`)
     } else {
       // Delete from local storage
       const localFilePath = path.join(process.cwd(), 'public', 'uploads', filePath)
@@ -153,16 +149,25 @@ export async function getSignedUrl(
   expiresIn: number = 3600000 // 1 hour
 ): Promise<string> {
   try {
-    if (hasGCPCredentials && bucket) {
-      const fileRef = bucket.file(filePath)
-      const [signedUrl] = await fileRef.getSignedUrl({
-        action: 'read',
-        expires: Date.now() + expiresIn,
-      })
-      return signedUrl
+    console.log(`Generating signed URL for file: ${filePath}`)
+    
+    if (hasCloudinaryConfig) {
+      // For Cloudinary, files are already publicly accessible
+      // We can generate a signed URL if needed, but for now return the public URL
+      // Extract public ID from file path
+      const publicId = filePath.replace(/^litefi\//, 'litefi/')
+      const isImage = filePath.includes('/profiles/') || filePath.includes('/images/')
+      const resourceType = isImage ? 'image' : 'raw'
+      
+      // Generate a simple URL (Cloudinary files are public by default)
+      const cloudinaryUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME || 'dxbizi45p'}/${resourceType}/upload/${publicId}`
+      console.log(`Generated Cloudinary URL: ${cloudinaryUrl}`)
+      return cloudinaryUrl
     } else {
       // Return local URL for development
-      return `/uploads/${filePath}`
+      const localUrl = `/uploads/${filePath}`
+      console.log(`Generated local URL: ${localUrl}`)
+      return localUrl
     }
   } catch (error) {
     console.error('Signed URL error:', error)
@@ -176,17 +181,129 @@ export async function getSignedUrl(
  */
 export async function fileExists(filePath: string): Promise<boolean> {
   try {
-    if (hasGCPCredentials && bucket) {
-      const fileRef = bucket.file(filePath)
-      const [exists] = await fileRef.exists()
-      return exists
+    console.log(`Checking if file exists: ${filePath}`)
+    
+    if (hasCloudinaryConfig) {
+      // For Cloudinary, we can check by making a HEAD request to the URL
+      const publicId = filePath.replace(/^litefi\//, 'litefi/')
+      const isImage = filePath.includes('/profiles/') || filePath.includes('/images/')
+      const resourceType = isImage ? 'image' : 'raw'
+      
+      try {
+        const cloudinaryUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME || 'dxbizi45p'}/${resourceType}/upload/${publicId}`
+        const response = await fetch(cloudinaryUrl, { method: 'HEAD' })
+        const exists = response.ok
+        console.log(`Cloudinary file check result for ${filePath}: ${exists ? 'exists' : 'does not exist'}`)
+        return exists
+      } catch (fetchError) {
+        console.log(`Cloudinary file check failed for ${filePath}: does not exist`)
+        return false
+      }
     } else {
       // Check local storage
       const localFilePath = path.join(process.cwd(), 'public', 'uploads', filePath)
-      return fs.existsSync(localFilePath)
+      const exists = fs.existsSync(localFilePath)
+      console.log(`Local file check result for ${localFilePath}: ${exists ? 'exists' : 'does not exist'}`)
+      return exists
     }
   } catch (error) {
     console.error('File exists check error:', error)
     return false
+  }
+}
+
+/**
+ * Move a file from one location to another in storage
+ * @param sourcePath - Source path of the file
+ * @param destinationPath - Destination path for the file
+ * @returns Boolean indicating success
+ */
+export async function moveFile(sourcePath: string, destinationPath: string): Promise<boolean> {
+  try {
+    console.log(`Moving file from ${sourcePath} to ${destinationPath}`);
+    console.log(`Using Cloudinary: ${hasCloudinaryConfig ? 'Yes' : 'No (local fallback)'}`); 
+    
+    if (hasCloudinaryConfig) {
+      // For Cloudinary, we use the rename/move functionality
+      const sourcePublicId = sourcePath.replace(/^litefi\//, 'litefi/')
+      const destinationFolder = destinationPath.substring(0, destinationPath.lastIndexOf('/'))
+      const isImage = sourcePath.includes('/profiles/') || sourcePath.includes('/images/')
+      const resourceType = isImage ? 'image' : 'raw'
+      
+      try {
+        const newPublicId = await moveFileInCloudinary(sourcePublicId, destinationFolder, resourceType)
+        console.log(`File moved from ${sourcePath} to ${destinationPath} in Cloudinary`);
+        return true;
+      } catch (moveError) {
+        console.error('Error moving file in Cloudinary:', moveError);
+        return false;
+      }
+    } else {
+      // For local storage
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      const sourceFilePath = path.join(uploadsDir, sourcePath);
+      const destinationFilePath = path.join(uploadsDir, destinationPath);
+      
+      console.log(`Local source path: ${sourceFilePath}`);
+      console.log(`Local destination path: ${destinationFilePath}`);
+      
+      // Check if source file exists
+      if (!fs.existsSync(sourceFilePath)) {
+        console.error(`Source file ${sourceFilePath} does not exist in local storage`);
+        return false;
+      }
+      
+      // Create destination directory if it doesn't exist
+      const destinationDir = path.dirname(destinationFilePath);
+      if (!fs.existsSync(destinationDir)) {
+        try {
+          fs.mkdirSync(destinationDir, { recursive: true });
+          console.log(`Created destination directory: ${destinationDir}`);
+        } catch (mkdirError) {
+          console.error('Error creating destination directory:', mkdirError);
+          if (mkdirError instanceof Error) {
+            console.error('Mkdir error message:', mkdirError.message);
+            console.error('Mkdir error stack:', mkdirError.stack);
+          }
+          throw mkdirError;
+        }
+      }
+      
+      // Copy file to destination
+      try {
+        fs.copyFileSync(sourceFilePath, destinationFilePath);
+        console.log(`File copied from ${sourceFilePath} to ${destinationFilePath} in local storage`);
+      } catch (copyError) {
+        console.error('Error copying file in local storage:', copyError);
+        if (copyError instanceof Error) {
+          console.error('Copy error message:', copyError.message);
+          console.error('Copy error stack:', copyError.stack);
+        }
+        throw copyError;
+      }
+      
+      // Delete source file
+      try {
+        fs.unlinkSync(sourceFilePath);
+        console.log(`Source file ${sourceFilePath} deleted from local storage`);
+      } catch (deleteError) {
+        console.error('Error deleting source file in local storage:', deleteError);
+        if (deleteError instanceof Error) {
+          console.error('Delete error message:', deleteError.message);
+          console.error('Delete error stack:', deleteError.stack);
+        }
+        // Continue even if delete fails - the copy was successful
+        console.warn('Continuing despite delete failure - file was copied successfully');
+      }
+      
+      return true;
+    }
+  } catch (error) {
+    console.error('Move file error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    return false;
   }
 }
