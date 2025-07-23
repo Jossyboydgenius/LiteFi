@@ -45,6 +45,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
   const [selectedState, setSelectedState] = useState<string>("");
   const [availableLGAs, setAvailableLGAs] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Auto-save hooks
   const { data: autoSavedData, updateData, clearSavedData, hasSavedData } = useAutoSave(formData, {
@@ -81,6 +82,29 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
     }
   }, [selectedState]);
 
+  const validateField = (field: string, value: string): string => {
+    // Clear previous error for this field
+    setFieldErrors(prev => ({ ...prev, [field]: '' }));
+    
+    if (field === 'bvn' && value.length > 0 && value.length !== 11) {
+      return `BVN must be exactly 11 digits. You entered ${value.length} digits.`;
+    }
+    
+    if (field === 'nin' && value.length > 0 && value.length !== 11) {
+      return `NIN must be exactly 11 digits. You entered ${value.length} digits.`;
+    }
+    
+    if (field === 'accountNumber' && value.length > 0 && value.length !== 10) {
+      return `Account number must be exactly 10 digits. You entered ${value.length} digits.`;
+    }
+    
+    if ((field === 'phoneNumber' || field === 'kinPhoneNumber') && value.length > 0 && value.length !== 11) {
+      return `Phone number must be exactly 11 digits. You entered ${value.length} digits.`;
+    }
+    
+    return '';
+  };
+
   const handleInputChange = (field: string, value: string, fieldType?: string) => {
     let processedValue = value;
     
@@ -100,6 +124,12 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         processedValue = numericValue.slice(0, 11); // 11 digits max for phone numbers
       } else if (field === 'accountNumber') {
         processedValue = numericValue.slice(0, 10); // 10 digits max for account number
+      }
+      
+      // Validate and set error message
+      const errorMessage = validateField(field, processedValue);
+      if (errorMessage) {
+        setFieldErrors(prev => ({ ...prev, [field]: errorMessage }));
       }
     }
     // For years in current address - only allow numbers, max 2 digits
@@ -124,9 +154,12 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       // Check file size (10MB = 10 * 1024 * 1024 bytes)
       const maxFileSize = 10 * 1024 * 1024; // 10MB
       if (file.size > maxFileSize) {
-        toast.error(`File size exceeds 10MB limit. Please select a smaller file.`);
+        setFieldErrors(prev => ({ ...prev, [docName]: 'File size exceeds 10MB limit. Please select a smaller file.' }));
         return;
       }
+      
+      // Clear any previous errors for this field
+      setFieldErrors(prev => ({ ...prev, [docName]: '' }));
 
       setIsUploading(prev => ({ ...prev, [docName]: true }));
       setUploadProgress(prev => ({ ...prev, [docName]: 0 }));
@@ -175,11 +208,11 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         }
         
       } catch (error: any) {
-        console.error('Upload failed:', error);
-        setIsUploading(prev => ({ ...prev, [docName]: false }));
-        setUploadProgress(prev => ({ ...prev, [docName]: 0 }));
-        toast.error(error.message || `Failed to upload ${docName}`);
-      }
+          console.error('Upload failed:', error);
+          setIsUploading(prev => ({ ...prev, [docName]: false }));
+          setUploadProgress(prev => ({ ...prev, [docName]: 0 }));
+          setFieldErrors(prev => ({ ...prev, [docName]: error.message || `Failed to upload ${docName}` }));
+        }
     } else {
       // Create file input for user to select file
       const input = document.createElement('input');
@@ -365,14 +398,19 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       case "email":
       case "tel":
         return (
-          <Input
-            id={field.name}
-            type={field.type}
-            value={(formData[field.name] as string) || ""}
-            onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
-            className="text-black placeholder:text-gray-500"
-            required={field.required}
-          />
+          <div className="space-y-1">
+            <Input
+              id={field.name}
+              type={field.type}
+              value={(formData[field.name] as string) || ""}
+              onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
+              className={`text-black placeholder:text-gray-500 ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}
+              required={field.required}
+            />
+            {fieldErrors[field.name] && (
+              <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+            )}
+          </div>
         );
       
       case "date":
@@ -390,30 +428,40 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         // Special handling for yearsInCurrentAddress - should be a number input
         if (field.name === "yearsInCurrentAddress") {
           return (
-            <Input
-              id={field.name}
-              type="number"
-              value={(formData[field.name] as string) || ""}
-              onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
-              className="text-black placeholder:text-gray-500"
-              required={field.required}
-              placeholder="Enter number of years"
-              min="1"
-              max="99"
-            />
+            <div className="space-y-1">
+              <Input
+                id={field.name}
+                type="number"
+                value={(formData[field.name] as string) || ""}
+                onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
+                className={`text-black placeholder:text-gray-500 ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}
+                required={field.required}
+                placeholder="Enter number of years"
+                min="1"
+                max="99"
+              />
+              {fieldErrors[field.name] && (
+                <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+              )}
+            </div>
           );
         }
         // For other number fields like loan amount, keep as text with formatting
         return (
-          <Input
-            id={field.name}
-            type="text"
-            value={(formData[field.name] as string) || ""}
-            onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
-            className="text-black placeholder:text-gray-500"
-            required={field.required}
-            placeholder="e.g., 500,000"
-          />
+          <div className="space-y-1">
+            <Input
+              id={field.name}
+              type="text"
+              value={(formData[field.name] as string) || ""}
+              onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
+              className={`text-black placeholder:text-gray-500 ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}
+              required={field.required}
+              placeholder="e.g., 500,000"
+            />
+            {fieldErrors[field.name] && (
+              <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+            )}
+          </div>
         );
       
       case "select":
@@ -487,27 +535,36 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         return (
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <Button
-                type="button"
-                variant={uploadedFiles[field.name] ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = field.name === 'selfie' ? 'image/*' : 'image/*,.pdf,.doc,.docx';
-                  input.onchange = async (e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0];
-                    if (file) {
-                      await handleFileUpload(field.name, file);
-                    }
-                  };
-                  input.click();
-                }}
-                disabled={isUploading[field.name]}
-              >
-                {field.name === "selfie" ? <Camera className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                {isUploading[field.name] ? "Uploading..." : uploadedFiles[field.name] ? "Uploaded ✓" : "Upload"}
-              </Button>
+              <div className="relative group">
+                <Button
+                  type="button"
+                  variant={uploadedFiles[field.name] ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = field.name === 'selfie' ? 'image/*' : 'image/*,.pdf,.doc,.docx';
+                    input.onchange = async (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        await handleFileUpload(field.name, file);
+                      }
+                    };
+                    input.click();
+                  }}
+                  disabled={isUploading[field.name]}
+                >
+                  {field.name === "selfie" ? <Camera className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                  <span className="group-hover:hidden">
+                    {isUploading[field.name] ? "Uploading..." : uploadedFiles[field.name] ? "Uploaded ✓" : "Upload"}
+                  </span>
+                  {uploadedFiles[field.name] && (
+                    <span className="hidden group-hover:inline">
+                      Replace File
+                    </span>
+                  )}
+                </Button>
+              </div>
               {field.accept && (
                 <span className="text-sm text-gray-500">
                   {field.accept.includes('image') ? 'Image files only' : 'All files'}
@@ -519,6 +576,9 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
                 <Progress value={uploadProgress[field.name] || 0} className="h-2" />
                 <p className="text-xs text-gray-500">{uploadProgress[field.name] || 0}% uploaded</p>
               </div>
+            )}
+            {fieldErrors[field.name] && (
+              <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
             )}
           </div>
         );
