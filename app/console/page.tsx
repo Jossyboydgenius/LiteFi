@@ -820,6 +820,41 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
     }
   };
 
+  const handleDocumentDownload = async (documentId: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/documents/download?documentId=${documentId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download document');
+      }
+
+      // Create blob from response
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName || 'document';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+      
+      toast.success(`Document "${fileName}" downloaded successfully`);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download document');
+    }
+  };
+
   const downloadApplicationPDF = () => {
     const htmlContent = `
 <!DOCTYPE html>
@@ -952,7 +987,7 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
         <div class="section-title">Documents</div>
         <ul class="documents-list">
             ${application.documents.map((doc, index) => `
-                <li>${doc.name || doc.type || `Document ${index + 1}`}</li>
+                <li>${doc.fileName || doc.documentType || `Document ${index + 1}`}</li>
             `).join('')}
         </ul>
     </div>
@@ -1156,8 +1191,12 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
             {application.documents && application.documents.length > 0 ? (
               application.documents.map((doc, index) => (
                 <div key={index} className="flex items-center justify-between py-2 border-b">
-                  <span className="text-black">{doc.name || doc.type || `Document ${index + 1}`}</span>
-                  <Button size="sm" variant="outline">
+                  <span className="text-black">{doc.fileName || doc.documentType || `Document ${index + 1}`}</span>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleDocumentDownload(doc.id, doc.fileName)}
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     Download
                   </Button>
