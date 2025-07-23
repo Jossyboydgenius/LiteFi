@@ -15,6 +15,7 @@ import { states, getLGAsForState } from "@/lib/data/states";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import { useAutoSave, useFileAutoSave } from "@/hooks/useAutoSave";
+import { uploadDocument } from "@/lib/api";
 
 interface BusinessLoanFormProps {
   loanType: "business-cash" | "business-car";
@@ -131,60 +132,47 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       setUploadProgress(prev => ({ ...prev, [docName]: 0 }));
       
       try {
-        // Mock upload with random upload time (1-5 seconds)
-        const mockUpload = () => {
-          return new Promise<void>((resolve) => {
-            // Random upload duration between 1-5 seconds
-            const totalUploadTime = Math.floor(Math.random() * 4000) + 1000; // 1000-5000ms
-            const updateInterval = 200; // Update progress every 200ms
-            const totalSteps = totalUploadTime / updateInterval;
-            const progressIncrement = 100 / totalSteps;
-            
-            let progress = 0;
-            const interval = setInterval(() => {
-              // Add some randomness to each progress increment
-              progress += progressIncrement * (0.5 + Math.random());
-              if (progress >= 100) {
-                progress = 100;
-                setUploadProgress(prev => ({ ...prev, [docName]: Math.round(progress) }));
-                clearInterval(interval);
-                resolve();
-              } else {
-                setUploadProgress(prev => ({ ...prev, [docName]: Math.round(progress) }));
-              }
-            }, updateInterval);
+        // Simulate progress for better UX
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            const currentProgress = prev[docName] || 0;
+            if (currentProgress < 90) {
+              return { ...prev, [docName]: currentProgress + 10 };
+            }
+            return prev;
           });
-        };
-
-        await mockUpload();
+        }, 100);
         
-        // Mock successful upload result
-        const mockTempFile = {
-          fileName: file.name,
-          filePath: `temp/${Date.now()}-${file.name}`,
-          fileSize: file.size,
-          mimeType: file.type,
-          documentType: getDocumentType(docName)
-        };
+        // Upload to Cloudinary via API
+        const documentType = getDocumentType(docName);
+        const uploadResult = await uploadDocument(file, documentType);
         
-        // Store both the file and the temporary upload result
-        const updatedFiles = {
-          ...uploadedFiles,
-          [docName]: {
-            file,
-            tempFile: mockTempFile
-          }
-        };
+        clearInterval(progressInterval);
+        setUploadProgress(prev => ({ ...prev, [docName]: 100 }));
         
-        setUploadedFiles(updatedFiles);
-        updateFiles(updatedFiles);
-        
-        setTimeout(() => {
+        if (uploadResult.success) {
+          // Store both the file and the temporary upload result
+          const updatedFiles = {
+            ...uploadedFiles,
+            [docName]: {
+              file,
+              tempFile: uploadResult.tempFile
+            }
+          };
+          
+          setUploadedFiles(updatedFiles);
+          updateFiles(updatedFiles);
+          
           setIsUploading(prev => ({ ...prev, [docName]: false }));
-          setUploadProgress(prev => ({ ...prev, [docName]: 0 }));
-        }, 500);
-        
-        toast.success(`${docName} uploaded successfully`);
+          
+          setTimeout(() => {
+            setUploadProgress(prev => ({ ...prev, [docName]: 0 }));
+          }, 1000);
+          
+          toast.success(`${docName} uploaded successfully`);
+        } else {
+          throw new Error(uploadResult.error || 'Upload failed');
+        }
         
       } catch (error: any) {
         console.error('Upload failed:', error);
@@ -281,7 +269,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
        }
 
        const result = await response.json();
-       const applicationId = result.applicationId;
+       const applicationId = result.loanApplication.applicationId;
 
        // Associate uploaded documents with the application
        const documentAssociations = [];
@@ -326,25 +314,39 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
   };
 
   const associateDocument = async (applicationId: string, docName: string, tempFile: any) => {
-    // Mock document association - simulate API call with random delay (100-500ms)
-    const delay = Math.floor(Math.random() * 400) + 100;
-    await new Promise(resolve => setTimeout(resolve, delay));
-    
-    console.log(`Mock: Document ${docName} associated successfully with application ${applicationId}`);
-    console.log('Mock association data:', {
-      applicationId,
-      tempFilePath: tempFile.filePath,
-      documentType: tempFile.documentType,
-      fileName: tempFile.fileName,
-      fileSize: tempFile.fileSize,
-      mimeType: tempFile.mimeType
-    });
-
-    return {
-      success: true,
-      documentId: `mock-doc-${Date.now()}`,
-      message: `Document ${docName} associated successfully`
-    };
+    try {
+      const formData = new FormData();
+      
+      // Create a new File object from the stored file data
+      const storedFileData = uploadedFiles[docName];
+      if (storedFileData && storedFileData.file) {
+        formData.append('file', storedFileData.file);
+        formData.append('applicationId', applicationId);
+        formData.append('documentType', tempFile.documentType);
+        
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to associate document');
+        }
+        
+        const result = await response.json();
+        console.log(`Document ${docName} associated successfully with application ${applicationId}`);
+        return result;
+      } else {
+        throw new Error('File data not found');
+      }
+    } catch (error) {
+      console.error(`Failed to associate document ${docName}:`, error);
+      throw error;
+    }
   };
 
   const isFormValid = () => {
@@ -438,7 +440,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           return (
             <Select 
               value={(formData[field.name] as string) || ""} 
-              onValueChange={(value) => handleInputChange(field.name, value)}
+              onValueChange={(value: string) => handleInputChange(field.name, value)}
               disabled={!selectedState}
             >
               <SelectTrigger className="text-black">
@@ -456,7 +458,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         return (
           <Select 
             value={(formData[field.name] as string) || ""} 
-            onValueChange={(value) => handleInputChange(field.name, value)}
+            onValueChange={(value: string) => handleInputChange(field.name, value)}
           >
             <SelectTrigger className="text-black">
               <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />

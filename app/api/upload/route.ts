@@ -83,8 +83,10 @@ export async function POST(request: NextRequest) {
       // Convert file to buffer
       const buffer = Buffer.from(await file.arrayBuffer());
 
-      // Upload to Google Cloud Storage in temp folder
+      // Upload to Cloudinary in temp folder
+      // This will use the temp/ folder structure we've implemented
       const uploadResult = await uploadFile(buffer, file.name, file.type, 'temp');
+      console.log(`Temporary file uploaded to: ${uploadResult.filePath}`);
 
       return NextResponse.json({
         success: true,
@@ -141,8 +143,30 @@ export async function POST(request: NextRequest) {
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Upload to Google Cloud Storage
-    const uploadResult = await uploadFile(buffer, file.name, file.type);
+    // Upload to Cloudinary with appropriate folder structure
+    // Map document type to appropriate folder
+    let folder: string;
+    
+    // Use the document type to determine the appropriate folder
+    switch (documentType) {
+      case 'SELFIE':
+        folder = 'profiles';
+        break;
+      case 'GOVERNMENT_ID':
+      case 'UTILITY_BILL':
+      case 'WORK_ID':
+        folder = 'documents';
+        break;
+      case 'CAC_CERTIFICATE':
+      case 'CAC_DOCUMENTS':
+        folder = 'documents/business';
+        break;
+      default:
+        folder = 'documents/general';
+    }
+    
+    const uploadResult = await uploadFile(buffer, file.name, file.type, folder);
+    console.log(`Permanent file uploaded to: ${uploadResult.filePath}`);
 
     // Find the loan application by applicationId to get the actual id
     const loanApplication = await prisma.loanApplication.findUnique({
@@ -182,8 +206,33 @@ export async function POST(request: NextRequest) {
     }
 
     console.error('Upload error:', error);
+    
+    // Add more detailed error logging
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorString = error instanceof Error ? error.toString() : String(error);
+    
+    // Check if it's a storage-related error
+    if (errorString.includes('storage')) {
+      return NextResponse.json(
+        { error: 'Storage error: ' + errorMessage },
+        { status: 500 }
+      );
+    }
+    
+    // Check if it's a database-related error
+    if (errorString.includes('prisma') || errorString.includes('database')) {
+      return NextResponse.json(
+        { error: 'Database error: ' + errorMessage },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: errorMessage },
       { status: 500 }
     );
   }
