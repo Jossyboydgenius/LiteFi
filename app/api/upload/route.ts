@@ -215,10 +215,25 @@ export async function POST(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     const errorString = error instanceof Error ? error.toString() : String(error);
     
+    // Check for specific error types to provide better user feedback
+    if (errorString.includes('ENOENT') || errorString.includes('mkdir') || errorString.includes('no such file or directory')) {
+      return NextResponse.json(
+        { error: 'Internal server error', message: 'Failed to upload file: Server configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+    
+    if (errorString.includes('Cloudinary') || errorString.includes('upload service')) {
+      return NextResponse.json(
+        { error: 'Internal server error', message: 'Failed to upload file: Upload service is temporarily unavailable. Please try again later.' },
+        { status: 500 }
+      );
+    }
+    
     // Check if it's a storage-related error
     if (errorString.includes('storage')) {
       return NextResponse.json(
-        { error: 'Storage error: ' + errorMessage },
+        { error: 'Internal server error', message: 'Failed to upload file: Storage error. Please try again or contact support.' },
         { status: 500 }
       );
     }
@@ -226,13 +241,13 @@ export async function POST(request: NextRequest) {
     // Check if it's a database-related error
     if (errorString.includes('prisma') || errorString.includes('database')) {
       return NextResponse.json(
-        { error: 'Database error: ' + errorMessage },
+        { error: 'Internal server error', message: 'Failed to upload file: Database error. Please try again.' },
         { status: 500 }
       );
     }
     
     return NextResponse.json(
-      { error: 'Internal server error', message: errorMessage },
+      { error: 'Internal server error', message: `Failed to upload file: ${errorMessage}` },
       { status: 500 }
     );
   }

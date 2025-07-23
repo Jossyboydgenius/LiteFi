@@ -4,13 +4,18 @@ import fs from 'fs'
 import path from 'path'
 
 // Check if Cloudinary is configured
-const hasCloudinaryConfig = process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_SECRET
+// On production, we should always use Cloudinary. Only fall back to local storage in development.
+const hasCloudinaryConfig = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
 const isDevelopment = process.env.NODE_ENV === 'development'
+const isProduction = process.env.NODE_ENV === 'production'
 
 if (hasCloudinaryConfig) {
   console.log('Initialized Cloudinary for file uploads')
+} else if (isProduction) {
+  console.error('Cloudinary configuration missing in production environment!')
+  console.error('Required environment variables: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET')
 } else {
-  console.log('Cloudinary not configured, using local storage fallback')
+  console.log('Cloudinary not configured, using local storage fallback (development only)')
 }
 
 export interface UploadResult {
@@ -40,7 +45,24 @@ export async function uploadFile(
     console.log(`MIME type: ${mimeType}`);
     console.log(`Using Cloudinary: ${hasCloudinaryConfig ? 'Yes' : 'No (local fallback)'}`);
     
-    // Use Cloudinary if configured, otherwise use local storage
+    // In production, Cloudinary must be configured and working
+    if (isProduction) {
+      if (!hasCloudinaryConfig) {
+        throw new Error('File upload service not available. Cloudinary configuration is required in production.');
+      }
+      
+      // On production, only use Cloudinary - no fallback
+      const cloudinaryResult = await uploadToCloudinary(file, originalName, mimeType, folder);
+      
+      return {
+        fileName: cloudinaryResult.fileName,
+        filePath: cloudinaryResult.filePath,
+        publicUrl: cloudinaryResult.publicUrl,
+        fileSize: cloudinaryResult.fileSize,
+      };
+    }
+    
+    // In development, try Cloudinary first, then fall back to local storage
     if (hasCloudinaryConfig) {
       try {
         const cloudinaryResult = await uploadToCloudinary(file, originalName, mimeType, folder);
@@ -52,13 +74,13 @@ export async function uploadFile(
           fileSize: cloudinaryResult.fileSize,
         };
       } catch (error) {
-        console.error('Cloudinary upload failed, falling back to local storage:', error);
-        // Fall through to local storage
+        console.error('Cloudinary upload failed in development, falling back to local storage:', error);
+        // Fall through to local storage only in development
       }
     }
     
-    // Fallback to local storage
-    console.log('Using local storage fallback');
+    // Fallback to local storage (development only)
+    console.log('Using local storage fallback (development only)');
     
     // Generate unique filename for local storage
     const fileExtension = originalName.split('.').pop();
