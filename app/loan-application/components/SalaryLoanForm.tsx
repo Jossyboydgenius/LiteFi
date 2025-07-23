@@ -274,7 +274,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
        }
 
        const result = await response.json();
-       const applicationId = result.applicationId;
+       const applicationId = result.loanApplication.applicationId;
 
        // Associate uploaded documents with the application
        const documentAssociations = [];
@@ -319,7 +319,11 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
   const associateDocument = async (applicationId: string, docName: string, tempFile: any) => {
     try {
       const formData = new FormData();
-      formData.append('file', uploadedFiles[docName].file);
+      const fileData = uploadedFiles[docName];
+      if (!fileData?.file) {
+        throw new Error('File data not found');
+      }
+      formData.append('file', fileData.file);
       formData.append('applicationId', applicationId);
       formData.append('documentType', getDocumentType(docName));
       
@@ -442,7 +446,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           return (
             <Select 
               value={(formData[field.name] as string) || ""} 
-              onValueChange={(value) => handleInputChange(field.name, value)}
+              onValueChange={(value: string) => handleInputChange(field.name, value)}
               disabled={!selectedState}
             >
               <SelectTrigger className="text-black">
@@ -460,7 +464,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         return (
           <Select 
             value={(formData[field.name] as string) || ""} 
-            onValueChange={(value) => handleInputChange(field.name, value)}
+            onValueChange={(value: string) => handleInputChange(field.name, value)}
           >
             <SelectTrigger className="text-black">
               <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />

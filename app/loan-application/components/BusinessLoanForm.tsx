@@ -269,7 +269,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
        }
 
        const result = await response.json();
-       const applicationId = result.applicationId;
+       const applicationId = result.loanApplication.applicationId;
 
        // Associate uploaded documents with the application
        const documentAssociations = [];
@@ -440,7 +440,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           return (
             <Select 
               value={(formData[field.name] as string) || ""} 
-              onValueChange={(value) => handleInputChange(field.name, value)}
+              onValueChange={(value: string) => handleInputChange(field.name, value)}
               disabled={!selectedState}
             >
               <SelectTrigger className="text-black">
@@ -458,7 +458,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         return (
           <Select 
             value={(formData[field.name] as string) || ""} 
-            onValueChange={(value) => handleInputChange(field.name, value)}
+            onValueChange={(value: string) => handleInputChange(field.name, value)}
           >
             <SelectTrigger className="text-black">
               <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
