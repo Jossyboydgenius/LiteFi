@@ -625,60 +625,17 @@ export default function AdminDashboard() {
                                 {selectedApplication && (
                                   <ApplicationDetailsModal 
                                     application={selectedApplication}
-                                    onApprove={handleApproveClick} // Changed to use the click handler
+                                    onApprove={handleApproveClick}
                                     onReject={handleReject}
                                   />
                                 )}
-              
-              {/* Pagination */}
-              {!loading && pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between px-2 py-4">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} applications
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchApplications(pagination.page - 1, filterStatus)}
-                      disabled={pagination.page <= 1 || loading}
-                    >
-                      Previous
-                    </Button>
-                    <div className="flex items-center space-x-1">
-                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                        const pageNum = i + 1;
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={pagination.page === pageNum ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => fetchApplications(pageNum, filterStatus)}
-                            disabled={loading}
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchApplications(pagination.page + 1, filterStatus)}
-                      disabled={pagination.page >= pagination.totalPages || loading}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
                               </DialogContent>
                             </Dialog>
                             {application.status === 'PENDING' && (
                               <>
                                 <Button
                                   size="sm"
-                                  onClick={() => handleApproveClick(application)} // Changed to use the click handler
+                                  onClick={() => handleApproveClick(application)}
                                   className="bg-green-600 hover:bg-green-700"
                                   disabled={actionLoading === application.id}
                                 >
@@ -707,6 +664,49 @@ export default function AdminDashboard() {
                 </Table>
               )}
             </div>
+            
+            {/* Pagination */}
+            {!loading && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 py-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} applications
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchApplications(pagination.page - 1, filterStatus)}
+                    disabled={pagination.page <= 1 || loading}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={pagination.page === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => fetchApplications(pageNum, filterStatus)}
+                          disabled={loading}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchApplications(pagination.page + 1, filterStatus)}
+                    disabled={pagination.page >= pagination.totalPages || loading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -778,8 +778,227 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
     }
   };
 
+  const downloadApplicationPDF = () => {
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>LiteFi Loan Application - ${application.id}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+        .section { margin-bottom: 25px; }
+        .section-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px; }
+        .info-item { padding: 10px; background: #f9f9f9; border-radius: 5px; }
+        .info-label { font-weight: bold; color: #555; }
+        .info-value { margin-top: 5px; }
+        .status-approved { color: green; font-weight: bold; }
+        .status-pending { color: orange; font-weight: bold; }
+        .status-rejected { color: red; font-weight: bold; }
+        .documents-list { list-style: none; padding: 0; }
+        .documents-list li { padding: 8px; background: #f5f5f5; margin-bottom: 5px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LiteFi Loan Application Details</h1>
+        <p><strong>Application ID:</strong> ${application.id}</p>
+        ${application.loanId ? `<p><strong>Loan ID:</strong> ${application.loanId}</p>` : ''}
+        <p>Generated on: ${new Date().toLocaleDateString()}</p>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Application Overview</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Loan Type</div>
+                <div class="info-value">${formatLoanType(application.loanType)}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Status</div>
+                <div class="info-value status-${application.status.toLowerCase()}">${application.status}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Requested Amount</div>
+                <div class="info-value">${formatCurrency(application.loanAmount)}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Tenure</div>
+                <div class="info-value">${application.tenure} months</div>
+            </div>
+            ${application.approvedAmount ? `
+            <div class="info-item">
+                <div class="info-label">Approved Amount</div>
+                <div class="info-value">${formatCurrency(application.approvedAmount)}</div>
+            </div>
+            ` : ''}
+            ${application.approvedTenure ? `
+            <div class="info-item">
+                <div class="info-label">Approved Tenure</div>
+                <div class="info-value">${application.approvedTenure} months</div>
+            </div>
+            ` : ''}
+        </div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Applicant Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">${application.user.firstName} ${application.user.lastName}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Email Address</div>
+                <div class="info-value">${application.user.email}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Phone Number</div>
+                <div class="info-value">${application.personalInfo?.phone || 'N/A'}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Employment Status</div>
+                <div class="info-value">${application.employmentInfo?.employmentStatus || 'N/A'}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Monthly Income</div>
+                <div class="info-value">${application.financialInfo?.monthlyIncome ? formatCurrency(application.financialInfo.monthlyIncome) : 'N/A'}</div>
+            </div>
+            ${application.purpose ? `
+            <div class="info-item">
+                <div class="info-label">Loan Purpose</div>
+                <div class="info-value">${application.purpose}</div>
+            </div>
+            ` : ''}
+        </div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Timeline</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Submitted</div>
+                <div class="info-value">${formatDate(application.createdAt)}</div>
+            </div>
+            ${application.reviewedAt ? `
+            <div class="info-item">
+                <div class="info-label">Reviewed</div>
+                <div class="info-value">${formatDate(application.reviewedAt)}</div>
+            </div>
+            ` : ''}
+            ${application.reviewedBy ? `
+            <div class="info-item">
+                <div class="info-label">Reviewed By</div>
+                <div class="info-value">${application.reviewedBy}</div>
+            </div>
+            ` : ''}
+        </div>
+    </div>
+    
+    ${application.documents && application.documents.length > 0 ? `
+    <div class="section">
+        <div class="section-title">Documents</div>
+        <ul class="documents-list">
+            ${application.documents.map((doc, index) => `
+                <li>${doc.name || doc.type || `Document ${index + 1}`}</li>
+            `).join('')}
+        </ul>
+    </div>
+    ` : ''}
+    
+    ${application.notes ? `
+    <div class="section">
+        <div class="section-title">Notes</div>
+        <div class="info-item">
+            <div class="info-value">${application.notes}</div>
+        </div>
+    </div>
+    ` : ''}
+</body>
+</html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    }
+
+    toast.success(`Application details for ${application.user.firstName} ${application.user.lastName} downloaded successfully`);
+  };
+
+  const downloadApplicationCSV = () => {
+    const csvData = {
+      'Application ID': application.id,
+      'Loan ID': application.loanId || '',
+      'Loan Type': formatLoanType(application.loanType),
+      'Applicant Name': `${application.user.firstName} ${application.user.lastName}`,
+      'Email': application.user.email,
+      'Phone': application.personalInfo?.phone || '',
+      'Requested Amount': application.loanAmount,
+      'Approved Amount': application.approvedAmount || '',
+      'Tenure': application.tenure,
+      'Approved Tenure': application.approvedTenure || '',
+      'Status': application.status,
+      'Employment Status': application.employmentInfo?.employmentStatus || '',
+      'Monthly Income': application.financialInfo?.monthlyIncome || '',
+      'Purpose': application.purpose || '',
+      'Submitted At': formatDate(application.createdAt),
+      'Reviewed At': application.reviewedAt ? formatDate(application.reviewedAt) : '',
+      'Reviewed By': application.reviewedBy || '',
+      'Notes': application.notes || ''
+    };
+
+    const csvContent = [
+      Object.keys(csvData).join(','),
+      Object.values(csvData).map(value => `"${value}"`).join(',')
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `loan_application_${application.id}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast.success(`Application data for ${application.user.firstName} ${application.user.lastName} exported to CSV`);
+  };
+
   return (
     <div className="space-y-6 bg-white text-black">
+      {/* Download Actions */}
+      <div className="flex justify-end gap-2 pb-4 border-b">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={downloadApplicationPDF}
+          className="flex items-center gap-2"
+        >
+          <FileText className="h-4 w-4" />
+          Download PDF
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={downloadApplicationCSV}
+          className="flex items-center gap-2"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Download CSV
+        </Button>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label className="text-sm font-medium text-gray-700">Application ID</Label>

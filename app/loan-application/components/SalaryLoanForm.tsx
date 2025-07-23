@@ -618,7 +618,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           { name: "loanAmount", label: "Loan Amount (₦)", type: "number", required: true },
           { name: "vehicleMake", label: "Make", type: "text", required: true },
           { name: "vehicleModel", label: "Model", type: "text", required: true },
-          { name: "vehicleYear", label: "Year of Vehicle", type: "select", options: Array.from({length: 20}, (_, i) => (2024 - i).toString()), required: true },
+          { name: "vehicleYear", label: "Year of Vehicle", type: "select", options: Array.from({length: 25}, (_, i) => (2025 - i).toString()), required: true },
           { name: "vehicleAmount", label: "Vehicle Amount (₦)", type: "number", required: true },
           { name: "tenure", label: "Tenure", type: "select", options: Array.from({length: 22}, (_, i) => `${i + 3} months`), required: true }
         ]
