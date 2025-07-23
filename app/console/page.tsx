@@ -29,7 +29,6 @@ interface LoanApplication {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   loanAmount: number;
   tenure: number;
-  purpose?: string;
   createdAt: string;
   updatedAt: string;
   reviewedAt?: string;
@@ -39,11 +38,54 @@ interface LoanApplication {
   interestRate?: number;
   approvedTenure?: number;
   rejectionReason?: string;
-  personalInfo?: any;
-  employmentInfo?: any;
-  financialInfo?: any;
-  businessInfo?: any;
-  carInfo?: any;
+  
+  // Personal Information
+  middleName?: string;
+  phoneNumber?: string;
+  bvn?: string;
+  nin?: string;
+  addressNumber?: string;
+  streetName?: string;
+  nearestBusStop?: string;
+  state?: string;
+  localGovernment?: string;
+  homeOwnership?: string;
+  yearsInAddress?: number;
+  maritalStatus?: string;
+  educationLevel?: string;
+  
+  // Vehicle Information (for car loans)
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehicleYear?: number;
+  vehicleAmount?: number;
+  
+  // Employment/Business Information
+  employerName?: string;
+  employerAddress?: string;
+  jobTitle?: string;
+  workEmail?: string;
+  employmentStartDate?: string;
+  salaryPaymentDate?: string;
+  netSalary?: number;
+  businessName?: string;
+  businessDescription?: string;
+  industry?: string;
+  businessAddress?: string;
+  
+  // Next of Kin
+  nokFirstName?: string;
+  nokLastName?: string;
+  nokMiddleName?: string;
+  nokRelationship?: string;
+  nokPhone?: string;
+  nokEmail?: string;
+  
+  // Bank Details
+  bankName?: string;
+  accountName?: string;
+  accountNumber?: string;
+  
   documents?: any[];
   user: {
     id: string;
@@ -856,15 +898,23 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
             </div>
             <div class="info-item">
                 <div class="info-label">Phone Number</div>
-                <div class="info-value">${application.personalInfo?.phone || 'N/A'}</div>
+                <div class="info-value">${application.phoneNumber || 'N/A'}</div>
             </div>
             <div class="info-item">
-                <div class="info-label">Employment Status</div>
-                <div class="info-value">${application.employmentInfo?.employmentStatus || 'N/A'}</div>
+                <div class="info-label">BVN</div>
+                <div class="info-value">${application.bvn || 'N/A'}</div>
             </div>
             <div class="info-item">
-                <div class="info-label">Monthly Income</div>
-                <div class="info-value">${application.financialInfo?.monthlyIncome ? formatCurrency(application.financialInfo.monthlyIncome) : 'N/A'}</div>
+                <div class="info-label">Address</div>
+                <div class="info-value">${[application.addressNumber, application.streetName, application.nearestBusStop, application.state, application.localGovernment].filter(Boolean).join(', ') || 'N/A'}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Employment/Business</div>
+                <div class="info-value">${application.employerName || application.businessName || 'N/A'}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Monthly Income/Salary</div>
+                <div class="info-value">${application.netSalary ? formatCurrency(Number(application.netSalary)) : 'N/A'}</div>
             </div>
             ${application.purpose ? `
             <div class="info-item">
@@ -942,15 +992,24 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
       'Loan Type': formatLoanType(application.loanType),
       'Applicant Name': `${application.user.firstName} ${application.user.lastName}`,
       'Email': application.user.email,
-      'Phone': application.personalInfo?.phone || '',
+      'Phone': application.phoneNumber || '',
+      'BVN': application.bvn || '',
+      'Address': [application.addressNumber, application.streetName, application.nearestBusStop, application.state, application.localGovernment].filter(Boolean).join(', ') || '',
       'Requested Amount': application.loanAmount,
       'Approved Amount': application.approvedAmount || '',
       'Tenure': application.tenure,
       'Approved Tenure': application.approvedTenure || '',
       'Status': application.status,
-      'Employment Status': application.employmentInfo?.employmentStatus || '',
-      'Monthly Income': application.financialInfo?.monthlyIncome || '',
-      'Purpose': application.purpose || '',
+      'Employer/Business': application.employerName || application.businessName || '',
+      'Job Title': application.jobTitle || '',
+      'Net Salary': application.netSalary || '',
+      'Vehicle Make': application.vehicleMake || '',
+      'Vehicle Model': application.vehicleModel || '',
+      'Vehicle Year': application.vehicleYear || '',
+      'Next of Kin': application.nokFirstName ? `${application.nokFirstName} ${application.nokLastName}` : '',
+      'NOK Phone': application.nokPhone || '',
+      'Bank Name': application.bankName || '',
+      'Account Number': application.accountNumber || '',
       'Submitted At': formatDate(application.createdAt),
       'Reviewed At': application.reviewedAt ? formatDate(application.reviewedAt) : '',
       'Reviewed By': application.reviewedBy || '',
@@ -1034,18 +1093,60 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
           <div className="mt-2 space-y-2">
             <p className="text-black"><strong>Name:</strong> {application.user.firstName} {application.user.lastName}</p>
             <p className="text-black"><strong>Email:</strong> {application.user.email}</p>
-            <p className="text-black"><strong>Phone:</strong> {application.personalInfo?.phone || 'N/A'}</p>
-            <p className="text-black"><strong>Employment:</strong> {application.employmentInfo?.employmentStatus || 'N/A'}</p>
-            <p className="text-black"><strong>Monthly Income:</strong> {application.financialInfo?.monthlyIncome ? formatCurrency(application.financialInfo.monthlyIncome) : 'N/A'}</p>
+            <p className="text-black"><strong>Phone:</strong> {application.phoneNumber || 'N/A'}</p>
+            <p className="text-black"><strong>BVN:</strong> {application.bvn || 'N/A'}</p>
+            <p className="text-black"><strong>NIN:</strong> {application.nin || 'N/A'}</p>
+            <p className="text-black"><strong>Address:</strong> {[application.addressNumber, application.streetName, application.nearestBusStop, application.state, application.localGovernment].filter(Boolean).join(', ') || 'N/A'}</p>
+            <p className="text-black"><strong>Marital Status:</strong> {application.maritalStatus || 'N/A'}</p>
+            <p className="text-black"><strong>Home Ownership:</strong> {application.homeOwnership || 'N/A'}</p>
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium text-gray-700">Employment/Business Information</Label>
+          <div className="mt-2 space-y-2">
+            {application.employerName && <p className="text-black"><strong>Employer:</strong> {application.employerName}</p>}
+            {application.jobTitle && <p className="text-black"><strong>Job Title:</strong> {application.jobTitle}</p>}
+            {application.workEmail && <p className="text-black"><strong>Work Email:</strong> {application.workEmail}</p>}
+            {application.netSalary && <p className="text-black"><strong>Net Salary:</strong> {formatCurrency(Number(application.netSalary))}</p>}
+            {application.businessName && <p className="text-black"><strong>Business Name:</strong> {application.businessName}</p>}
+            {application.businessDescription && <p className="text-black"><strong>Business Description:</strong> {application.businessDescription}</p>}
+            {application.industry && <p className="text-black"><strong>Industry:</strong> {application.industry}</p>}
           </div>
         </div>
 
         <div>
           <Label className="text-sm font-medium text-gray-700">Loan Information</Label>
           <div className="mt-2 space-y-2">
-            <p className="text-black"><strong>Amount:</strong> {formatCurrency(application.loanAmount)}</p>
+            <p className="text-black"><strong>Amount:</strong> {formatCurrency(Number(application.loanAmount))}</p>
             <p className="text-black"><strong>Tenure:</strong> {application.tenure} months</p>
-            {application.purpose && <p className="text-black"><strong>Purpose:</strong> {application.purpose}</p>}
+            {(application.loanType === 'salary-car' || application.loanType === 'business-car') && (
+              <>
+                {application.vehicleMake && <p className="text-black"><strong>Vehicle Make:</strong> {application.vehicleMake}</p>}
+                {application.vehicleModel && <p className="text-black"><strong>Vehicle Model:</strong> {application.vehicleModel}</p>}
+                {application.vehicleYear && <p className="text-black"><strong>Vehicle Year:</strong> {application.vehicleYear}</p>}
+                {application.vehicleAmount && <p className="text-black"><strong>Vehicle Amount:</strong> {formatCurrency(Number(application.vehicleAmount))}</p>}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium text-gray-700">Next of Kin Information</Label>
+          <div className="mt-2 space-y-2">
+            {application.nokFirstName && <p className="text-black"><strong>Name:</strong> {application.nokFirstName} {application.nokLastName}</p>}
+            {application.nokRelationship && <p className="text-black"><strong>Relationship:</strong> {application.nokRelationship}</p>}
+            {application.nokPhone && <p className="text-black"><strong>Phone:</strong> {application.nokPhone}</p>}
+            {application.nokEmail && <p className="text-black"><strong>Email:</strong> {application.nokEmail}</p>}
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium text-gray-700">Bank Account Details</Label>
+          <div className="mt-2 space-y-2">
+            {application.bankName && <p className="text-black"><strong>Bank Name:</strong> {application.bankName}</p>}
+            {application.accountName && <p className="text-black"><strong>Account Name:</strong> {application.accountName}</p>}
+            {application.accountNumber && <p className="text-black"><strong>Account Number:</strong> {application.accountNumber}</p>}
           </div>
         </div>
 
