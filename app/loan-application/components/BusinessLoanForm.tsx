@@ -16,6 +16,7 @@ import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import { useAutoSave, useFileAutoSave } from "@/hooks/useAutoSave";
 import { uploadDocument } from "@/lib/api";
+import CloudinaryUploadWidget from "./CloudinaryUploadWidget";
 
 interface BusinessLoanFormProps {
   loanType: "business-cash" | "business-car";
@@ -26,8 +27,9 @@ interface FormData {
 }
 
 interface UploadedDocs {
-  file: File;
-  tempFile: {
+  file?: File;
+  cloudinaryResult?: any;
+  tempFile?: {
     fileName: string;
     filePath: string;
     fileSize: number;
@@ -147,6 +149,32 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
     setFormData(prev => ({ ...prev, state: value, localGovernment: "" }));
     updateData('state', value);
     updateData('localGovernment', '');
+  };
+
+  const handleCloudinaryUpload = (docName: string) => (result: any) => {
+    console.log('Cloudinary upload success:', result);
+    
+    // Store the Cloudinary result
+    const updatedFiles = {
+      ...uploadedFiles,
+      [docName]: {
+        cloudinaryResult: result
+      }
+    };
+    
+    setUploadedFiles(updatedFiles);
+    updateFiles(updatedFiles);
+    
+    // Clear any previous errors for this field
+    setFieldErrors(prev => ({ ...prev, [docName]: '' }));
+    
+    toast.success(`${docName} uploaded successfully`);
+  };
+
+  const handleCloudinaryError = (docName: string) => (error: any) => {
+    console.error('Cloudinary upload error:', error);
+    setFieldErrors(prev => ({ ...prev, [docName]: error.message || `Failed to upload ${docName}` }));
+    toast.error(`Failed to upload ${docName}`);
   };
 
   const handleFileUpload = async (docName: string, file?: File) => {
@@ -307,8 +335,8 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
        // Associate uploaded documents with the application
        const documentAssociations = [];
        for (const [docName, fileData] of Object.entries(uploadedFiles)) {
-         if (fileData && fileData.tempFile) {
-           documentAssociations.push(associateDocument(applicationId, docName, fileData.tempFile));
+         if (fileData && (fileData.cloudinaryResult || fileData.tempFile)) {
+           documentAssociations.push(associateDocument(applicationId, docName, fileData));
          }
        }
 
@@ -346,16 +374,43 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
     return docTypeMap[fieldName] || 'GOVERNMENT_ID';
   };
 
-  const associateDocument = async (applicationId: string, docName: string, tempFile: any) => {
+  const associateDocument = async (applicationId: string, docName: string, fileData: any) => {
     try {
-      const formData = new FormData();
+      const documentType = getDocumentType(docName);
       
-      // Create a new File object from the stored file data
-      const storedFileData = uploadedFiles[docName];
-      if (storedFileData && storedFileData.file) {
-        formData.append('file', storedFileData.file);
+      if (fileData.cloudinaryResult) {
+        // Handle Cloudinary upload
+        const response = await fetch('/api/documents/associate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            applicationId,
+            documentType,
+            cloudinaryUrl: fileData.cloudinaryResult.secure_url,
+            cloudinaryPublicId: fileData.cloudinaryResult.public_id,
+            fileName: fileData.cloudinaryResult.original_filename,
+            fileSize: fileData.cloudinaryResult.bytes,
+            mimeType: `${fileData.cloudinaryResult.resource_type}/${fileData.cloudinaryResult.format}`
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to associate document');
+        }
+        
+        const result = await response.json();
+        console.log(`Document ${docName} associated successfully with application ${applicationId}`);
+        return result;
+      } else if (fileData.tempFile && fileData.file) {
+        // Handle legacy file upload
+        const formData = new FormData();
+        formData.append('file', fileData.file);
         formData.append('applicationId', applicationId);
-        formData.append('documentType', tempFile.documentType);
+        formData.append('documentType', documentType);
         
         const response = await fetch('/api/upload', {
           method: 'POST',
@@ -374,7 +429,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         console.log(`Document ${docName} associated successfully with application ${applicationId}`);
         return result;
       } else {
-        throw new Error('File data not found');
+        throw new Error('No valid file data found');
       }
     } catch (error) {
       console.error(`Failed to associate document ${docName}:`, error);
@@ -532,6 +587,31 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         );
       
       case "file":
+        // Use CloudinaryUploadWidget for selfie field, regular file upload for others
+        if (field.name === "selfie") {
+          return (
+            <div className="space-y-2">
+              <CloudinaryUploadWidget
+                onUploadAction={handleCloudinaryUpload(field.name)}
+                onError={handleCloudinaryError(field.name)}
+                documentType="SELFIE"
+                isUploading={isUploading[field.name]}
+                uploadedFile={uploadedFiles[field.name]}
+                disabled={isUploading[field.name]}
+              />
+              {field.accept && (
+                <span className="text-sm text-gray-500">
+                  {field.accept.includes('image') ? 'Image files only' : 'All files'}
+                </span>
+              )}
+              {fieldErrors[field.name] && (
+                <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+              )}
+            </div>
+          );
+        }
+        
+        // Regular file upload for other documents
         return (
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -543,7 +623,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
                   onClick={() => {
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = field.name === 'selfie' ? 'image/*' : 'image/*,.pdf,.doc,.docx';
+                    input.accept = 'image/*,.pdf,.doc,.docx';
                     input.onchange = async (e) => {
                       const file = (e.target as HTMLInputElement).files?.[0];
                       if (file) {
@@ -554,8 +634,8 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
                   }}
                   disabled={isUploading[field.name]}
                 >
-                  {field.name === "selfie" ? <Camera className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                  <span className="group-hover:hidden">
+                  <Upload className="h-4 w-4 mr-2" />
+                  <span className="group-hover">
                     {isUploading[field.name] ? "Uploading..." : uploadedFiles[field.name] ? "Uploaded ✓" : "Upload"}
                   </span>
                   {uploadedFiles[field.name] && (
@@ -653,6 +733,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       {
         title: "Documents",
         documents: [
+          "Selfie",
           "Valid Government ID",
           "Utility Bill",
           "Work ID",
@@ -730,6 +811,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       {
         title: "Documents",
         documents: [
+          "Selfie",
           "Valid Government ID",
           "Utility Bill",
           "Work ID",
@@ -799,68 +881,41 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
 
           {section.documents && (
             <div className="grid md:grid-cols-2 gap-4">
-              {section.documents.map((doc) => (
-                <div key={doc} className="border rounded-lg p-4 space-y-2">
-                  <p className="text-sm font-medium text-gray-700">{doc}</p>
-                  <div className="space-y-2">
-                    <div className="relative group">
-                      <Button
-                        type="button"
-                        variant={uploadedFiles[doc] ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          // Set proper accept attribute based on document type
-                          const documentType = getDocumentType(doc);
-                          if (documentType === 'SELFIE') {
-                            input.accept = 'image/jpeg,image/png,image/webp,image/jpg';
-                          } else {
-                            input.accept = 'image/jpeg,image/png,image/webp,image/jpg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-                          }
-                          input.onchange = async (e) => {
-                            const file = (e.target as HTMLInputElement).files?.[0];
-                            if (file) {
-                              await handleFileUpload(doc, file);
-                            }
-                          };
-                          input.click();
-                        }}
-                        className="w-full transition-all duration-200"
+              {section.documents.map((doc) => {
+                const documentType = getDocumentType(doc);
+                const acceptedTypes = documentType === 'SELFIE' 
+                  ? 'image/jpeg,image/png,image/webp,image/jpg'
+                  : 'image/jpeg,image/png,image/webp,image/jpg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                
+                return (
+                  <div key={doc} className="border rounded-lg p-4 space-y-2">
+                    <p className="text-sm font-medium text-gray-700">{doc}</p>
+                    <div className="space-y-2">
+                      <CloudinaryUploadWidget
+                        onUploadAction={handleCloudinaryUpload(doc)}
+                        onError={handleCloudinaryError(doc)}
+                        documentType={documentType}
+                        isUploading={isUploading[doc]}
+                        uploadedFile={uploadedFiles[doc]}
                         disabled={isUploading[doc]}
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        <span className="group-hover:hidden">
-                          {isUploading[doc] ? "Uploading..." : uploadedFiles[doc] ? "Uploaded ✓" : "Upload File"}
-                        </span>
-                        {uploadedFiles[doc] && (
-                          <span className="hidden group-hover:inline">
-                            Replace File
-                          </span>
-                        )}
-                      </Button>
-                      {uploadedFiles[doc] && (
-                        <div className="absolute inset-0 bg-blue-50 border border-blue-200 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
-                          <span className="text-blue-600 text-sm font-medium">Click to Replace</span>
+                      />
+                      <div className="text-xs text-gray-500">
+                        Accepted: {documentType === 'SELFIE' ? 'jpg, png, webp' : 'jpg, png, webp, pdf, doc, docx'}
+                      </div>
+                      {fieldErrors[doc] && (
+                        <p className="text-xs text-red-500">{fieldErrors[doc]}</p>
+                      )}
+                      {uploadedFiles[doc]?.cloudinaryResult && (
+                        <div className="text-xs text-gray-500">
+                          <p>File: {uploadedFiles[doc].cloudinaryResult.original_filename || 'Unknown'}</p>
+                          <p>Size: {uploadedFiles[doc].cloudinaryResult.bytes ? (uploadedFiles[doc].cloudinaryResult.bytes / 1024).toFixed(1) : '0'} KB</p>
+                          <p>Type: {uploadedFiles[doc].cloudinaryResult.format || 'Unknown'}</p>
                         </div>
                       )}
                     </div>
-                    {isUploading[doc] && (
-                      <div className="space-y-1">
-                        <Progress value={uploadProgress[doc] || 0} className="h-2" />
-                        <p className="text-xs text-gray-500">{uploadProgress[doc] || 0}% uploaded</p>
-                      </div>
-                    )}
-                    {uploadedFiles[doc] && !isUploading[doc] && (
-                      <div className="text-xs text-gray-500">
-                        <p>File: {uploadedFiles[doc].tempFile?.fileName}</p>
-                        <p>Size: {(uploadedFiles[doc].tempFile?.fileSize / 1024).toFixed(1)} KB</p>
-                        <p>Type: {uploadedFiles[doc].tempFile?.mimeType}</p>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -15,6 +15,7 @@ import { states, getLGAsForState } from "@/lib/data/states";
 import { toast } from "sonner";
 import { useAutoSave, useFileAutoSave } from "@/hooks/useAutoSave";
 import { uploadDocument } from "@/lib/api";
+import CloudinaryUploadWidget from "./CloudinaryUploadWidget";
 
 interface SalaryLoanFormProps {
   loanType: "salary-cash" | "salary-car";
@@ -25,8 +26,9 @@ interface FormData {
 }
 
 interface UploadedDocs {
-  file: File;
-  tempFile: {
+  file?: File;
+  cloudinaryResult?: any;
+  tempFile?: {
     fileName: string;
     filePath: string;
     fileSize: number;
@@ -153,6 +155,39 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
     setFormData(prev => ({ ...prev, state: value, localGovernment: "" }));
     updateData('state', value);
     updateData('localGovernment', '');
+  };
+
+  const handleCloudinaryUpload = (docName: string, result: any) => {
+    console.log('Cloudinary upload result:', result);
+    
+    // Clear any previous errors for this field
+    setFieldErrors(prev => ({ ...prev, [docName]: '' }));
+    
+    // Store the Cloudinary result
+    const updatedFiles = {
+      ...uploadedFiles,
+      [docName]: {
+        cloudinaryResult: result.info,
+        tempFile: {
+          fileName: result.info.original_filename || result.info.public_id,
+          filePath: result.info.secure_url,
+          fileSize: result.info.bytes,
+          mimeType: result.info.format ? `image/${result.info.format}` : 'application/octet-stream',
+          documentType: getDocumentType(docName)
+        }
+      }
+    };
+    
+    setUploadedFiles(updatedFiles);
+    updateFiles(updatedFiles);
+    
+    toast.success(`${docName} uploaded successfully`);
+  };
+
+  const handleCloudinaryError = (docName: string, error: any) => {
+    console.error('Cloudinary upload error:', error);
+    setFieldErrors(prev => ({ ...prev, [docName]: 'Upload failed. Please try again.' }));
+    toast.error(`Failed to upload ${docName}`);
   };
 
   const handleFileUpload = async (docName: string, file?: File) => {
@@ -346,8 +381,8 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
        // Associate uploaded documents with the application
        const documentAssociations = [];
        for (const [docName, fileData] of Object.entries(uploadedFiles)) {
-         if (fileData && fileData.tempFile) {
-           documentAssociations.push(associateDocument(applicationId, docName, fileData.tempFile));
+         if (fileData && (fileData.cloudinaryResult || fileData.tempFile)) {
+           documentAssociations.push(associateDocument(applicationId, docName, fileData));
          }
        }
 
@@ -383,34 +418,63 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
     return docTypeMap[fieldName] || 'GOVERNMENT_ID';
   };
 
-  const associateDocument = async (applicationId: string, docName: string, tempFile: any) => {
+  const associateDocument = async (applicationId: string, docName: string, fileData: any) => {
     try {
-      const formData = new FormData();
-      const fileData = uploadedFiles[docName];
-      if (!fileData?.file) {
-        throw new Error('File data not found');
+      const documentType = getDocumentType(docName);
+      
+      if (fileData.cloudinaryResult) {
+        // Handle Cloudinary upload
+        const response = await fetch('/api/documents/associate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            applicationId,
+            documentType,
+            cloudinaryUrl: fileData.cloudinaryResult.secure_url,
+            cloudinaryPublicId: fileData.cloudinaryResult.public_id,
+            fileName: fileData.cloudinaryResult.original_filename,
+            fileSize: fileData.cloudinaryResult.bytes,
+            mimeType: `${fileData.cloudinaryResult.resource_type}/${fileData.cloudinaryResult.format}`
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to associate document');
+        }
+        
+        const result = await response.json();
+        console.log(`Document ${docName} associated successfully with application ${applicationId}`);
+        return result;
+      } else if (fileData.tempFile && fileData.file) {
+        // Handle legacy file upload
+        const formData = new FormData();
+        formData.append('file', fileData.file);
+        formData.append('applicationId', applicationId);
+        formData.append('documentType', documentType);
+        
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to associate document');
+        }
+        
+        const result = await response.json();
+        console.log(`Document ${docName} associated successfully with application ${applicationId}`);
+        return result;
+      } else {
+        throw new Error('No valid file data found');
       }
-      formData.append('file', fileData.file);
-      formData.append('applicationId', applicationId);
-      formData.append('documentType', getDocumentType(docName));
-      
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to associate document');
-      }
-      
-      const result = await response.json();
-      console.log(`Document ${docName} associated successfully with application ${applicationId}`);
-      
-      return result;
     } catch (error) {
       console.error(`Failed to associate document ${docName}:`, error);
       throw error;
@@ -574,48 +638,18 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       case "file":
         return (
           <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <div className="relative group">
-                <Button
-                  type="button"
-                  variant={uploadedFiles[field.name] ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = field.name === 'selfie' ? 'image/*' : 'image/*,.pdf,.doc,.docx';
-                    input.onchange = async (e) => {
-                      const file = (e.target as HTMLInputElement).files?.[0];
-                      if (file) {
-                        await handleFileUpload(field.name, file);
-                      }
-                    };
-                    input.click();
-                  }}
-                  disabled={isUploading[field.name]}
-                >
-                  {field.name === "selfie" ? <Camera className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                  <span className="group-hover:hidden">
-                    {isUploading[field.name] ? "Uploading..." : uploadedFiles[field.name] ? "Uploaded ✓" : "Upload"}
-                  </span>
-                  {uploadedFiles[field.name] && (
-                    <span className="hidden group-hover:inline">
-                      Replace File
-                    </span>
-                  )}
-                </Button>
-              </div>
-              {field.accept && (
-                <span className="text-sm text-gray-500">
-                  {field.accept.includes('image') ? 'Image files only' : 'All files'}
-                </span>
-              )}
-            </div>
-            {isUploading[field.name] && (
-              <div className="space-y-1">
-                <Progress value={uploadProgress[field.name] || 0} className="h-2" />
-                <p className="text-xs text-gray-500">{uploadProgress[field.name] || 0}% uploaded</p>
-              </div>
+            <CloudinaryUploadWidget
+              onUploadAction={(result) => handleCloudinaryUpload(field.name, result)}
+              onError={(error) => handleCloudinaryError(field.name, error)}
+              documentType={field.name === 'selfie' ? 'SELFIE' : 'DOCUMENT'}
+              isUploading={isUploading[field.name]}
+              uploadedFile={uploadedFiles[field.name]}
+              disabled={isUploading[field.name]}
+            />
+            {field.accept && (
+              <span className="text-sm text-gray-500">
+                {field.accept.includes('image') ? 'Image files only' : 'All files'}
+              </span>
             )}
             {fieldErrors[field.name] && (
               <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
@@ -695,6 +729,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       {
         title: "Documents",
         documents: [
+          "Selfie",
           "Valid Government ID",
           "Utility Bill",
           "Work ID"
@@ -772,6 +807,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       {
         title: "Documents",
         documents: [
+          "Selfie",
           "Valid Government ID",
           "Utility Bill",
           "Work ID"
@@ -841,68 +877,38 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
 
           {section.documents && (
             <div className="grid md:grid-cols-2 gap-4">
-              {section.documents.map((doc) => (
-                <div key={doc} className="border rounded-lg p-4 space-y-2">
-                  <p className="text-sm font-medium text-gray-700">{doc}</p>
-                  <div className="space-y-2">
-                    <div className="relative group">
-                      <Button
-                        type="button"
-                        variant={uploadedFiles[doc] ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          // Set proper accept attribute based on document type
-                          const documentType = getDocumentType(doc);
-                          if (documentType === 'SELFIE') {
-                            input.accept = 'image/jpeg,image/png,image/webp,image/jpg';
-                          } else {
-                            input.accept = 'image/jpeg,image/png,image/webp,image/jpg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-                          }
-                          input.onchange = async (e) => {
-                            const file = (e.target as HTMLInputElement).files?.[0];
-                            if (file) {
-                              await handleFileUpload(doc, file);
-                            }
-                          };
-                          input.click();
-                        }}
-                        className="w-full transition-all duration-200"
+              {section.documents.map((doc) => {
+                const documentType = getDocumentType(doc);
+                return (
+                  <div key={doc} className="border rounded-lg p-4 space-y-2">
+                    <p className="text-sm font-medium text-gray-700">{doc}</p>
+                    <div className="space-y-2">
+                      <CloudinaryUploadWidget
+                        onUploadAction={(result) => handleCloudinaryUpload(doc, result)}
+                        onError={(error) => handleCloudinaryError(doc, error)}
+                        documentType={documentType}
+                        isUploading={isUploading[doc]}
+                        uploadedFile={uploadedFiles[doc]}
                         disabled={isUploading[doc]}
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        <span className="group-hover:hidden">
-                          {isUploading[doc] ? "Uploading..." : uploadedFiles[doc] ? "Uploaded ✓" : "Upload File"}
-                        </span>
-                        {uploadedFiles[doc] && (
-                          <span className="hidden group-hover:inline">
-                            Replace File
-                          </span>
-                        )}
-                      </Button>
-                      {uploadedFiles[doc] && (
-                        <div className="absolute inset-0 bg-blue-50 border border-blue-200 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
-                          <span className="text-blue-600 text-sm font-medium">Click to Replace</span>
+                        className="w-full"
+                      />
+                      <div className="text-xs text-gray-500">
+                         Accepted: jpg, png, webp, pdf, doc, docx
+                       </div>
+                      {uploadedFiles[doc] && !isUploading[doc] && (
+                        <div className="text-xs text-gray-500">
+                          <p>File: {uploadedFiles[doc]?.tempFile?.fileName || 'Unknown'}</p>
+                          <p>Size: {uploadedFiles[doc]?.tempFile ? (uploadedFiles[doc]!.tempFile!.fileSize / 1024).toFixed(1) : '0'} KB</p>
+                          <p>Type: {uploadedFiles[doc]?.tempFile?.mimeType || 'Unknown'}</p>
                         </div>
                       )}
+                      {fieldErrors[doc] && (
+                        <p className="text-sm text-red-600">{fieldErrors[doc]}</p>
+                      )}
                     </div>
-                    {isUploading[doc] && (
-                      <div className="space-y-1">
-                        <Progress value={uploadProgress[doc] || 0} className="h-2" />
-                        <p className="text-xs text-gray-500">{uploadProgress[doc] || 0}% uploaded</p>
-                      </div>
-                    )}
-                    {uploadedFiles[doc] && !isUploading[doc] && (
-                      <div className="text-xs text-gray-500">
-                        <p>File: {uploadedFiles[doc]?.tempFile?.fileName}</p>
-                        <p>Size: {uploadedFiles[doc]?.tempFile ? (uploadedFiles[doc]!.tempFile.fileSize / 1024).toFixed(1) : '0'} KB</p>
-                        <p>Type: {uploadedFiles[doc]?.tempFile?.mimeType}</p>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
