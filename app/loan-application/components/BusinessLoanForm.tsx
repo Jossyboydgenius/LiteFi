@@ -154,19 +154,26 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
   const handleCloudinaryUpload = (docName: string) => (result: any) => {
     console.log('Cloudinary upload success:', result);
     
-    // Store the Cloudinary result
+    // Clear any previous errors for this field
+    setFieldErrors(prev => ({ ...prev, [docName]: '' }));
+    
+    // Store the Cloudinary result with tempFile structure for persistence
     const updatedFiles = {
       ...uploadedFiles,
       [docName]: {
-        cloudinaryResult: result
+        cloudinaryResult: result,
+        tempFile: {
+          fileName: result.original_filename || result.public_id,
+          filePath: result.secure_url,
+          fileSize: result.bytes,
+          mimeType: result.format ? `image/${result.format}` : 'application/octet-stream',
+          documentType: getDocumentType(docName)
+        }
       }
     };
     
     setUploadedFiles(updatedFiles);
     updateFiles(updatedFiles);
-    
-    // Clear any previous errors for this field
-    setFieldErrors(prev => ({ ...prev, [docName]: '' }));
     
     toast.success(`${docName} uploaded successfully`);
   };
@@ -733,7 +740,6 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       {
         title: "Documents",
         documents: [
-          "Selfie",
           "Valid Government ID",
           "Utility Bill",
           "Work ID",
@@ -811,7 +817,6 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       {
         title: "Documents",
         documents: [
-          "Selfie",
           "Valid Government ID",
           "Utility Bill",
           "Work ID",

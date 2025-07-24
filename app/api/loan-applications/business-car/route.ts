@@ -13,9 +13,9 @@ const businessCarLoanSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   middleName: z.string().optional(),
   email: z.string().email('Valid email is required'),
-  phoneNumber: z.string().min(1, 'Phone number is required'),
-  bvn: z.string().min(1, 'BVN is required'),
-  nin: z.string().optional(),
+  phoneNumber: z.string().min(11, 'Phone number must be exactly 11 digits').max(11, 'Phone number must be exactly 11 digits'),
+  bvn: z.string().min(11, 'BVN must be exactly 11 digits').max(11, 'BVN must be exactly 11 digits'),
+  nin: z.string().min(11, 'NIN must be exactly 11 digits').max(11, 'NIN must be exactly 11 digits').optional(),
   addressNumber: z.string().min(1, 'Address number is required'),
   streetName: z.string().min(1, 'Street name is required'),
   nearestBusStop: z.string().optional(),
@@ -44,13 +44,13 @@ const businessCarLoanSchema = z.object({
   nokLastName: z.string().min(1, 'Next of kin last name is required'),
   nokMiddleName: z.string().optional(),
   nokRelationship: z.string().min(1, 'Relationship is required'),
-  nokPhone: z.string().min(1, 'Next of kin phone is required'),
+  nokPhone: z.string().min(11, 'Next of kin phone must be exactly 11 digits').max(11, 'Next of kin phone must be exactly 11 digits'),
   nokEmail: z.string().email('Valid next of kin email is required'),
   
   // Financial Information
   bankName: z.string().min(1, 'Bank name is required'),
   accountName: z.string().min(1, 'Account name is required'),
-  accountNumber: z.string().min(10, 'Valid account number is required'),
+  accountNumber: z.string().min(10, 'Account number must be exactly 10 digits').max(10, 'Account number must be exactly 10 digits'),
 });
 
 // POST - Create business car loan application
