@@ -280,7 +280,6 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           };
           
           setUploadedFiles(updatedFiles);
-          updateFiles(updatedFiles);
           
           setTimeout(() => {
             setIsUploading(prev => ({ ...prev, [docName]: false }));
@@ -471,7 +470,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
 
        // Clear saved form data after successful submission
        clearSavedData();
-       clearSavedFiles();
+       clearAllFiles();
        
        toast.success("Loan application submitted successfully! We'll review your application and get back to you within 24-48 hours.");
        

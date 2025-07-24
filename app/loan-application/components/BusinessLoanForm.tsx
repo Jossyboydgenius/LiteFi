@@ -14,8 +14,7 @@ import { formatAmount } from "@/lib/formatters";
 import { states, getLGAsForState } from "@/lib/data/states";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
-import { useAutoSave, useFileAutoSave } from "@/hooks/useAutoSave";
-import { useCloudinaryAutoSave } from "@/hooks/useCloudinaryAutoSave";
+import { useAutoSave, useCloudinaryAutoSave } from "@/hooks/useAutoSave";
 import { uploadDocument } from "@/lib/api";
 import CloudinaryUploadWidget from "./CloudinaryUploadWidget";
 
@@ -55,8 +54,15 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
     key: `business-loan-${loanType}`,
     debounceMs: 1000
   });
-  const { uploadedFiles: autoSavedFiles, updateFiles, clearAllFiles, hasSavedFiles } = useFileAutoSave(`business-loan-${loanType}`);
-  const { registerWidget, isCloudinaryLoading } = useCloudinaryAutoSave();
+  const { 
+    uploadedFiles: cloudinaryFiles, 
+    isLoading: isCloudinaryLoading, 
+    handleCloudinaryUpload: handleCloudinaryResult, 
+    registerWidget, 
+    removeFile, 
+    clearAllFiles, 
+    getFileByType 
+  } = useCloudinaryAutoSave(`business-loan-${loanType}`);
 
   const [hasRestoredData, setHasRestoredData] = useState(false);
 
@@ -71,10 +77,31 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       toast.info('Previous form data restored');
     }
     
-    if (hasSavedFiles && Object.keys(autoSavedFiles).length > 0) {
-      setUploadedFiles(autoSavedFiles);
+    // Convert Cloudinary files to the expected format for backward compatibility
+    if (cloudinaryFiles.length > 0) {
+      const convertedFiles = cloudinaryFiles.reduce((acc: Record<string, UploadedDocs | null>, file: any) => {
+        acc[file.type] = {
+          cloudinaryResult: {
+            public_id: file.publicId,
+            secure_url: file.url,
+            original_filename: file.name,
+            bytes: file.size,
+            format: file.format,
+            resource_type: file.resourceType
+          },
+          tempFile: {
+            fileName: file.name,
+            filePath: file.url,
+            fileSize: file.size,
+            mimeType: file.format ? `image/${file.format}` : 'application/octet-stream',
+            documentType: file.type
+          }
+        };
+        return acc;
+      }, {} as Record<string, UploadedDocs | null>);
+      setUploadedFiles(convertedFiles);
     }
-  }, [hasSavedData, autoSavedData, hasSavedFiles, autoSavedFiles, hasRestoredData]);
+  }, [hasSavedData, autoSavedData, hasRestoredData, cloudinaryFiles]);
 
   // Update available LGAs when selected state changes
   useEffect(() => {
@@ -153,36 +180,39 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
     updateData('localGovernment', '');
   };
 
-  const handleCloudinaryUpload = (docName: string) => (result: any) => {
-    console.log('Cloudinary upload success:', result);
+  const handleCloudinaryUpload = (docName: string, result: any) => {
+    console.log('Cloudinary upload result:', result);
     
     // Clear any previous errors for this field
     setFieldErrors(prev => ({ ...prev, [docName]: '' }));
     
-    // Store the Cloudinary result with tempFile structure for persistence
-    const updatedFiles = {
-      ...uploadedFiles,
-      [docName]: {
-        cloudinaryResult: result,
-        tempFile: {
-          fileName: result.original_filename || result.public_id,
-          filePath: result.secure_url,
-          fileSize: result.bytes,
-          mimeType: result.format ? `image/${result.format}` : 'application/octet-stream',
-          documentType: getDocumentType(docName)
+    // Use the new Cloudinary auto-save hook
+    handleCloudinaryResult(result, docName);
+    
+    if (result.event === 'success') {
+      // Update the local state for backward compatibility
+      const updatedFiles = {
+        ...uploadedFiles,
+        [docName]: {
+          cloudinaryResult: result.info,
+          tempFile: {
+            fileName: result.info.original_filename || result.info.public_id,
+            filePath: result.info.secure_url,
+            fileSize: result.info.bytes,
+            mimeType: result.info.format ? `image/${result.info.format}` : 'application/octet-stream',
+            documentType: getDocumentType(docName)
+          }
         }
-      }
-    };
-    
-    setUploadedFiles(updatedFiles);
-    updateFiles(updatedFiles);
-    
-    toast.success(`${docName} uploaded successfully`);
+      };
+      
+      setUploadedFiles(updatedFiles);
+      toast.success(`${docName} uploaded successfully`);
+    }
   };
 
-  const handleCloudinaryError = (docName: string) => (error: any) => {
+  const handleCloudinaryError = (docName: string, error: any) => {
     console.error('Cloudinary upload error:', error);
-    setFieldErrors(prev => ({ ...prev, [docName]: error.message || `Failed to upload ${docName}` }));
+    setFieldErrors(prev => ({ ...prev, [docName]: 'Upload failed. Please try again.' }));
     toast.error(`Failed to upload ${docName}`);
   };
 
@@ -231,7 +261,6 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           };
           
           setUploadedFiles(updatedFiles);
-          updateFiles(updatedFiles);
           
           setIsUploading(prev => ({ ...prev, [docName]: false }));
           
@@ -357,7 +386,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
        
        // Clear auto-saved data after successful submission
        clearSavedData();
-       clearSavedFiles();
+       clearAllFiles();
        
        // Add delay before redirecting to allow user to see the toast
        setTimeout(() => {
@@ -601,8 +630,8 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           return (
             <div className="space-y-2">
               <CloudinaryUploadWidget
-                onUploadAction={handleCloudinaryUpload(field.name)}
-                onError={handleCloudinaryError(field.name)}
+                onUploadAction={(result) => handleCloudinaryUpload(field.name, result)}
+                onError={(error) => handleCloudinaryError(field.name, error)}
                 documentType="SELFIE"
                 isUploading={isUploading[field.name] || isCloudinaryLoading}
                 uploadedFile={uploadedFiles[field.name]}
@@ -900,8 +929,8 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
                     <p className="text-sm font-medium text-gray-700">{doc}</p>
                     <div className="space-y-2">
                       <CloudinaryUploadWidget
-                        onUploadAction={handleCloudinaryUpload(doc)}
-                        onError={handleCloudinaryError(doc)}
+                        onUploadAction={(result) => handleCloudinaryUpload(doc, result)}
+                        onError={(error) => handleCloudinaryError(doc, error)}
                         documentType={documentType}
                         isUploading={isUploading[doc] || isCloudinaryLoading}
                         uploadedFile={uploadedFiles[doc]}
