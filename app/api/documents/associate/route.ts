@@ -11,6 +11,7 @@ const associateSchema = z.object({
     'WORK_ID',
     'CAC_CERTIFICATE',
     'CAC_DOCUMENTS',
+    'SELFIE',
     'OTHER'
   ]),
   cloudinaryUrl: z.string().url(),

@@ -15,6 +15,7 @@ import { states, getLGAsForState } from "@/lib/data/states";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import { useAutoSave, useFileAutoSave } from "@/hooks/useAutoSave";
+import { useCloudinaryAutoSave } from "@/hooks/useCloudinaryAutoSave";
 import { uploadDocument } from "@/lib/api";
 import CloudinaryUploadWidget from "./CloudinaryUploadWidget";
 
@@ -54,7 +55,8 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
     key: `business-loan-${loanType}`,
     debounceMs: 1000
   });
-  const { uploadedFiles: autoSavedFiles, updateFiles, clearSavedFiles, hasSavedFiles } = useFileAutoSave(`business-loan-${loanType}`);
+  const { uploadedFiles: autoSavedFiles, updateFiles, clearAllFiles, hasSavedFiles } = useFileAutoSave(`business-loan-${loanType}`);
+  const { registerWidget, isCloudinaryLoading } = useCloudinaryAutoSave();
 
   const [hasRestoredData, setHasRestoredData] = useState(false);
 
@@ -602,9 +604,10 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
                 onUploadAction={handleCloudinaryUpload(field.name)}
                 onError={handleCloudinaryError(field.name)}
                 documentType="SELFIE"
-                isUploading={isUploading[field.name]}
+                isUploading={isUploading[field.name] || isCloudinaryLoading}
                 uploadedFile={uploadedFiles[field.name]}
-                disabled={isUploading[field.name]}
+                disabled={isUploading[field.name] || isCloudinaryLoading}
+                onWidgetReady={(widget) => registerWidget(field.name, widget)}
               />
               {field.accept && (
                 <span className="text-sm text-gray-500">
@@ -845,7 +848,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
                   size="sm"
                   onClick={() => {
                     clearSavedData();
-                    clearSavedFiles();
+                    clearAllFiles();
                     setFormData({});
                     setUploadedFiles({});
                     setSelectedState("");
@@ -900,9 +903,10 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
                         onUploadAction={handleCloudinaryUpload(doc)}
                         onError={handleCloudinaryError(doc)}
                         documentType={documentType}
-                        isUploading={isUploading[doc]}
+                        isUploading={isUploading[doc] || isCloudinaryLoading}
                         uploadedFile={uploadedFiles[doc]}
-                        disabled={isUploading[doc]}
+                        disabled={isUploading[doc] || isCloudinaryLoading}
+                        onWidgetReady={(widget) => registerWidget(doc, widget)}
                       />
                       <div className="text-xs text-gray-500">
                         Accepted: {documentType === 'SELFIE' ? 'jpg, png, webp' : 'jpg, png, webp, pdf, doc, docx'}
