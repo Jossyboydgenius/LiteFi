@@ -55,11 +55,30 @@ export async function GET(request: NextRequest) {
     try {
       // Check if using Cloudinary or local storage
       if (process.env.CLOUDINARY_CLOUD_NAME) {
-        // For Cloudinary, get signed URL
-        const signedUrl = await getSignedUrl(document.filePath);
+        // For Cloudinary, fetch the file and serve it with download headers
+        const fileUrl = await getSignedUrl(document.filePath);
         
-        // Redirect to the signed URL for download
-        return NextResponse.redirect(signedUrl);
+        // Fetch the file from Cloudinary
+        const response = await fetch(fileUrl);
+        if (!response.ok) {
+          return NextResponse.json(
+            { error: 'Failed to fetch file from Cloudinary' },
+            { status: 404 }
+          );
+        }
+        
+        const fileBuffer = await response.arrayBuffer();
+        
+        // Set appropriate headers for download
+        const headers = new Headers();
+        headers.set('Content-Type', document.mimeType || 'application/octet-stream');
+        headers.set('Content-Disposition', `attachment; filename="${document.fileName}"`);
+        headers.set('Content-Length', fileBuffer.byteLength.toString());
+        
+        return new NextResponse(fileBuffer, {
+          status: 200,
+          headers
+        });
       } else {
         // For local storage, serve the file directly
         const filePath = path.join(process.cwd(), 'public', document.filePath);

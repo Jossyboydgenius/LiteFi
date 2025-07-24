@@ -174,6 +174,12 @@ export async function getSignedUrl(
     console.log(`Generating signed URL for file: ${filePath}`)
     
     if (hasCloudinaryConfig) {
+      // Check if filePath is already a full Cloudinary URL
+      if (filePath.startsWith('https://res.cloudinary.com/')) {
+        console.log(`File path is already a full Cloudinary URL: ${filePath}`)
+        return filePath
+      }
+      
       // For Cloudinary, files are already publicly accessible
       // We can generate a signed URL if needed, but for now return the public URL
       // Extract public ID from file path
