@@ -168,6 +168,7 @@ enum DocumentType {
   WORK_ID          @map("work_id")
   CAC_CERTIFICATE  @map("cac_certificate")
   CAC_DOCUMENTS    @map("cac_documents")
+  SELFIE           @map("selfie")
   OTHER            @map("other")
 }
 

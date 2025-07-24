@@ -13,6 +13,7 @@ interface CloudinaryUploadWidgetProps {
   uploadedFile?: any;
   className?: string;
   disabled?: boolean;
+  onWidgetReady?: (widget: any) => void;
 }
 
 export default function CloudinaryUploadWidget({
@@ -22,12 +23,19 @@ export default function CloudinaryUploadWidget({
   isUploading = false,
   uploadedFile,
   className = '',
-  disabled = false
+  disabled = false,
+  onWidgetReady
 }: CloudinaryUploadWidgetProps) {
   const isSelfie = documentType === 'SELFIE';
   
+  // Create a unique identifier for this widget instance with timestamp for better uniqueness
+  const widgetId = React.useMemo(() => `${documentType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, [documentType]);
+  
+  // Store widget reference for proper cleanup
+  const widgetRef = React.useRef<any>(null);
+  
   // Configure upload options based on document type
-  const uploadOptions = {
+  const uploadOptions = React.useMemo(() => ({
     cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dxbizi45p',
     apiKey: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || '576182982358129',
     // Remove uploadPreset when using signed uploads with signatureEndpoint
@@ -43,6 +51,11 @@ export default function CloudinaryUploadWidget({
     showAdvancedOptions: false,
     showCompletedButton: true,
     showUploadMoreButton: false,
+    // Add unique public_id to prevent conflicts between uploads
+    publicId: widgetId,
+    // Ensure widget instances are independent
+    destroyWidget: false,
+
     styles: {
       palette: {
         window: '#FFFFFF',
@@ -67,20 +80,38 @@ export default function CloudinaryUploadWidget({
         }
       }
     }
-  };
+  }), [isSelfie, widgetId]);
+  
+  // Cleanup widget on unmount
+  React.useEffect(() => {
+    return () => {
+      if (widgetRef.current && typeof widgetRef.current.destroy === 'function') {
+        widgetRef.current.destroy({ removeThumbnails: true });
+      }
+    };
+  }, []);
 
   return (
     <CldUploadWidget
+      key={widgetId}
       signatureEndpoint="/api/sign-cloudinary-params"
       options={uploadOptions}
       onSuccess={(result) => {
-        console.log('Upload successful:', result);
+        console.log('Upload successful for', documentType, ':', result);
         onUploadAction(result);
       }}
       onError={(error) => {
-        console.error('Upload error:', error);
+        console.error('Upload error for', documentType, ':', error);
         if (onError) {
           onError(error);
+        }
+      }}
+      onOpen={(widget) => {
+        // Store widget reference for cleanup
+        widgetRef.current = widget;
+        // Notify parent component about widget instance
+        if (onWidgetReady) {
+          onWidgetReady(widget);
         }
       }}
     >

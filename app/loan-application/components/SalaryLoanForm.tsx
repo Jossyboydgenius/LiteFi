@@ -13,7 +13,7 @@ import { Upload, Camera } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
 import { states, getLGAsForState } from "@/lib/data/states";
 import { toast } from "sonner";
-import { useAutoSave, useFileAutoSave } from "@/hooks/useAutoSave";
+import { useAutoSave, useCloudinaryAutoSave } from "@/hooks/useAutoSave";
 import { uploadDocument } from "@/lib/api";
 import CloudinaryUploadWidget from "./CloudinaryUploadWidget";
 
@@ -53,7 +53,15 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
     key: `salary-loan-${loanType}`,
     debounceMs: 1000
   });
-  const { uploadedFiles: autoSavedFiles, updateFiles, clearSavedFiles, hasSavedFiles } = useFileAutoSave(`salary-loan-${loanType}`);
+  const { 
+    uploadedFiles: cloudinaryFiles, 
+    isLoading: isCloudinaryLoading, 
+    handleCloudinaryUpload: handleCloudinaryResult, 
+    registerWidget, 
+    removeFile, 
+    clearAllFiles, 
+    getFileByType 
+  } = useCloudinaryAutoSave(`salary-loan-${loanType}`);
 
   const [hasRestoredData, setHasRestoredData] = useState(false);
 
@@ -68,10 +76,31 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       toast.info('Previous form data restored');
     }
     
-    if (hasSavedFiles && Object.keys(autoSavedFiles).length > 0) {
-      setUploadedFiles(autoSavedFiles);
+    // Convert Cloudinary files to the expected format for backward compatibility
+    if (cloudinaryFiles.length > 0) {
+      const convertedFiles = cloudinaryFiles.reduce((acc, file) => {
+        acc[file.type] = {
+          cloudinaryResult: {
+            public_id: file.publicId,
+            secure_url: file.url,
+            original_filename: file.name,
+            bytes: file.size,
+            format: file.format,
+            resource_type: file.resourceType
+          },
+          tempFile: {
+            fileName: file.name,
+            filePath: file.url,
+            fileSize: file.size,
+            mimeType: file.format ? `image/${file.format}` : 'application/octet-stream',
+            documentType: file.type
+          }
+        };
+        return acc;
+      }, {} as Record<string, UploadedDocs | null>);
+      setUploadedFiles(convertedFiles);
     }
-  }, [hasSavedData, autoSavedData, hasSavedFiles, autoSavedFiles, hasRestoredData]);
+  }, [hasSavedData, autoSavedData, hasRestoredData, cloudinaryFiles]);
 
   // Update available LGAs when selected state changes
   useEffect(() => {
@@ -163,25 +192,28 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
     // Clear any previous errors for this field
     setFieldErrors(prev => ({ ...prev, [docName]: '' }));
     
-    // Store the Cloudinary result
-    const updatedFiles = {
-      ...uploadedFiles,
-      [docName]: {
-        cloudinaryResult: result.info,
-        tempFile: {
-          fileName: result.info.original_filename || result.info.public_id,
-          filePath: result.info.secure_url,
-          fileSize: result.info.bytes,
-          mimeType: result.info.format ? `image/${result.info.format}` : 'application/octet-stream',
-          documentType: getDocumentType(docName)
+    // Use the new Cloudinary auto-save hook
+    handleCloudinaryResult(result, docName);
+    
+    if (result.event === 'success') {
+      // Update the local state for backward compatibility
+      const updatedFiles = {
+        ...uploadedFiles,
+        [docName]: {
+          cloudinaryResult: result.info,
+          tempFile: {
+            fileName: result.info.original_filename || result.info.public_id,
+            filePath: result.info.secure_url,
+            fileSize: result.info.bytes,
+            mimeType: result.info.format ? `image/${result.info.format}` : 'application/octet-stream',
+            documentType: getDocumentType(docName)
+          }
         }
-      }
-    };
-    
-    setUploadedFiles(updatedFiles);
-    updateFiles(updatedFiles);
-    
-    toast.success(`${docName} uploaded successfully`);
+      };
+      
+      setUploadedFiles(updatedFiles);
+      toast.success(`${docName} uploaded successfully`);
+    }
   };
 
   const handleCloudinaryError = (docName: string, error: any) => {
@@ -689,9 +721,10 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
               onUploadAction={(result) => handleCloudinaryUpload(field.name, result)}
               onError={(error) => handleCloudinaryError(field.name, error)}
               documentType={field.name === 'selfie' ? 'SELFIE' : 'DOCUMENT'}
-              isUploading={isUploading[field.name]}
+              isUploading={isUploading[field.name] || isCloudinaryLoading}
               uploadedFile={uploadedFiles[field.name]}
-              disabled={isUploading[field.name]}
+              disabled={isUploading[field.name] || isCloudinaryLoading}
+              onWidgetReady={(widget) => registerWidget(field.name, widget)}
             />
             {field.accept && (
               <span className="text-sm text-gray-500">
@@ -881,7 +914,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
                   size="sm"
                   onClick={() => {
                     clearSavedData();
-                    clearSavedFiles();
+                    clearAllFiles();
                     setFormData({});
                     setUploadedFiles({});
                     setSelectedState("");
@@ -932,9 +965,10 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
                         onUploadAction={(result) => handleCloudinaryUpload(doc, result)}
                         onError={(error) => handleCloudinaryError(doc, error)}
                         documentType={documentType}
-                        isUploading={isUploading[doc]}
+                        isUploading={isUploading[doc] || isCloudinaryLoading}
                         uploadedFile={uploadedFiles[doc]}
-                        disabled={isUploading[doc]}
+                        disabled={isUploading[doc] || isCloudinaryLoading}
+                        onWidgetReady={(widget) => registerWidget(doc, widget)}
                         className="w-full"
                       />
                       <div className="text-xs text-gray-500">
