@@ -146,14 +146,15 @@ enum MaritalStatus {
 }
 
 model Document {
-  id            String      @id @default(nanoid())
-  applicationId String      @map("application_id")
-  documentType  DocumentType @map("document_type")
-  fileName      String      @map("file_name")
-  filePath      String      @map("file_path")
-  fileSize      Int?        @map("file_size")
-  mimeType      String?     @map("mime_type")
-  uploadedAt    DateTime    @default(now()) @map("uploaded_at")
+  id                  String      @id @default(nanoid())
+  applicationId       String      @map("application_id")
+  documentType        DocumentType @map("document_type")
+  fileName            String      @map("file_name")
+  filePath            String      @map("file_path")
+  fileSize            Int?        @map("file_size")
+  mimeType            String?     @map("mime_type")
+  cloudinaryPublicId  String?     @map("cloudinary_public_id")
+  uploadedAt          DateTime    @default(now()) @map("uploaded_at")
   
   // Relations
   application LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
@@ -167,7 +168,6 @@ enum DocumentType {
   WORK_ID          @map("work_id")
   CAC_CERTIFICATE  @map("cac_certificate")
   CAC_DOCUMENTS    @map("cac_documents")
-  SELFIE           @map("selfie")
   OTHER            @map("other")
 }
 

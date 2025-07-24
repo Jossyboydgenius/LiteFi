@@ -199,15 +199,15 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         return;
       }
 
-      // Validate file type for selfie
-      if (docName === 'selfie' && !file.type.startsWith('image/')) {
-        setFieldErrors(prev => ({ ...prev, [docName]: 'Selfie must be an image file (JPG, PNG, etc.)' }));
-        return;
-      }
-
       // Validate file type for documents
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (docName !== 'selfie' && !allowedTypes.includes(file.type)) {
+      // Validate file type for selfie
+    if (docName === 'selfie' && !file.type.startsWith('image/')) {
+      setFieldErrors(prev => ({ ...prev, [docName]: 'Selfie must be an image file (JPG, PNG, etc.)' }));
+      return;
+    }
+
+    if (docName !== 'selfie' && !allowedTypes.includes(file.type)) {
         setFieldErrors(prev => ({ ...prev, [docName]: 'Please upload a valid file type (JPG, PNG, PDF, DOC, DOCX)' }));
         return;
       }
@@ -372,6 +372,53 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
 
        if (!response.ok) {
          const errorData = await response.json();
+         
+         // Handle validation errors with specific field messages
+         if (errorData.error === 'Validation failed' && errorData.details) {
+           const validationErrors: Record<string, string> = {};
+           
+           errorData.details.forEach((detail: any) => {
+             const fieldPath = detail.path?.[0];
+             if (fieldPath) {
+               let fieldName = fieldPath;
+               let errorMessage = detail.message;
+               
+               // Map API field names to form field names
+               const fieldMapping: Record<string, string> = {
+                 'accountNumber': 'accountNumber',
+                 'bvn': 'bvn',
+                 'nin': 'nin',
+                 'phoneNumber': 'phoneNumber',
+                 'nokPhone': 'kinPhoneNumber'
+               };
+               
+               if (fieldMapping[fieldPath]) {
+                 fieldName = fieldMapping[fieldPath];
+               }
+               
+               // Provide user-friendly error messages
+               if (detail.code === 'too_small' && detail.type === 'string') {
+                 if (fieldPath === 'accountNumber') {
+                   errorMessage = `Account number must be exactly 10 digits. You entered ${detail.received || 0} digits.`;
+                 } else if (fieldPath === 'bvn') {
+                   errorMessage = `BVN must be exactly 11 digits. You entered ${detail.received || 0} digits.`;
+                 } else if (fieldPath === 'nin') {
+                   errorMessage = `NIN must be exactly 11 digits. You entered ${detail.received || 0} digits.`;
+                 } else if (fieldPath === 'phoneNumber' || fieldPath === 'nokPhone') {
+                   errorMessage = `Phone number must be exactly 11 digits. You entered ${detail.received || 0} digits.`;
+                 }
+               }
+               
+               validationErrors[fieldName] = errorMessage;
+             }
+           });
+           
+           // Set field errors and show a general toast
+           setFieldErrors(validationErrors);
+           toast.error('Please correct the highlighted fields and try again.');
+           return;
+         }
+         
          throw new Error(errorData.error || 'Failed to submit loan application');
        }
 
@@ -487,7 +534,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       : ['loanAmount', 'vehicleMake', 'vehicleModel', 'vehicleYear', 'vehicleAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber'];
     
     // Only check if all required form fields are filled
-    // Documents (including selfie) are optional and don't prevent form submission
+    // Documents are optional and don't prevent form submission
     return requiredFields.every(field => formData[field]);
   };
 
@@ -648,7 +695,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
             />
             {field.accept && (
               <span className="text-sm text-gray-500">
-                {field.accept.includes('image') ? 'Image files only' : 'All files'}
+                Image files only
               </span>
             )}
             {fieldErrors[field.name] && (
@@ -729,7 +776,6 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       {
         title: "Documents",
         documents: [
-          "Selfie",
           "Valid Government ID",
           "Utility Bill",
           "Work ID"
@@ -807,7 +853,6 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       {
         title: "Documents",
         documents: [
-          "Selfie",
           "Valid Government ID",
           "Utility Bill",
           "Work ID"

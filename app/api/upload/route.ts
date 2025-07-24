@@ -13,15 +13,7 @@ function validateFileType(mimeType: string, documentType: string): { valid: bool
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ];
   
-  // For selfie, only allow images
-  if (documentType === 'SELFIE') {
-    if (imageTypes.includes(mimeType)) {
-      return { valid: true, message: '' };
-    }
-    return { valid: false, message: 'Selfie must be an image file (JPEG, PNG, WebP)' };
-  }
-  
-  // For other documents, allow both images and document types
+  // For documents, allow both images and document types
   const allAllowedTypes = [...imageTypes, ...documentTypes];
   if (allAllowedTypes.includes(mimeType)) {
     return { valid: true, message: '' };
@@ -40,8 +32,7 @@ const uploadSchema = z.object({
     'UTILITY_BILL',
     'WORK_ID',
     'CAC_CERTIFICATE',
-    'CAC_DOCUMENTS',
-    'SELFIE'
+    'CAC_DOCUMENTS'
   ]),
 });
 
@@ -149,9 +140,6 @@ export async function POST(request: NextRequest) {
     
     // Use the document type to determine the appropriate folder
     switch (documentType) {
-      case 'SELFIE':
-        folder = 'profiles';
-        break;
       case 'GOVERNMENT_ID':
       case 'UTILITY_BILL':
       case 'WORK_ID':

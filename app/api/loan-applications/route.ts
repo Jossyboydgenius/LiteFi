@@ -13,10 +13,10 @@ const loanApplicationSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   middleName: z.string().optional(),
-  phoneNumber: z.string().min(1, 'Phone number is required'),
+  phoneNumber: z.string().min(11, 'Phone number must be exactly 11 digits').max(11, 'Phone number must be exactly 11 digits'),
   email: z.string().email('Valid email is required'),
-  bvn: z.string().min(1, 'BVN is required'),
-  nin: z.string().min(1, 'NIN is required'),
+  bvn: z.string().min(11, 'BVN must be exactly 11 digits').max(11, 'BVN must be exactly 11 digits'),
+  nin: z.string().min(11, 'NIN must be exactly 11 digits').max(11, 'NIN must be exactly 11 digits'),
   addressNo: z.string().min(1, 'Address number is required'),
   streetName: z.string().min(1, 'Street name is required'),
   nearestBusStop: z.string().min(1, 'Nearest bus stop is required'),
@@ -53,13 +53,13 @@ const loanApplicationSchema = z.object({
   kinLastName: z.string().min(1, 'Next of kin last name is required'),
   kinMiddleName: z.string().optional(),
   kinRelationship: z.string().min(1, 'Relationship is required'),
-  kinPhoneNumber: z.string().min(1, 'Next of kin phone number is required'),
+  kinPhoneNumber: z.string().min(11, 'Next of kin phone must be exactly 11 digits').max(11, 'Next of kin phone must be exactly 11 digits'),
   kinEmail: z.string().email('Valid next of kin email is required'),
   
   // Bank Details
   bankName: z.string().min(1, 'Bank name is required'),
   accountName: z.string().min(1, 'Account name is required'),
-  accountNumber: z.string().min(1, 'Account number is required'),
+  accountNumber: z.string().min(10, 'Account number must be exactly 10 digits').max(10, 'Account number must be exactly 10 digits'),
 });
 
 // GET - Fetch user's loan applications
