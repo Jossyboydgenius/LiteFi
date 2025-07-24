@@ -839,37 +839,63 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
   };
 
   const handleDocumentDownload = async (documentId: string, fileName: string) => {
-    try {
-      const response = await fetch(`/api/documents/download?documentId=${documentId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+    const maxRetries = 3;
+    const timeoutDuration = 30000; // 30 seconds
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+        
+        const response = await fetch(`/api/documents/download?documentId=${documentId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to download document');
+        // Create blob from response
+        const blob = await response.blob();
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName || 'document';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+        
+        toast.success(`Document "${fileName}" downloaded successfully`);
+        return; // Success, exit the retry loop
+        
+      } catch (error: any) {
+        console.error(`Download attempt ${attempt} failed:`, error);
+        
+        // If this is the last attempt, show error
+        if (attempt === maxRetries) {
+          if (error.name === 'AbortError') {
+            toast.error('Download timed out. Please check your connection and try again.');
+          } else {
+            toast.error(`Failed to download document after ${maxRetries} attempts. Please try again later.`);
+          }
+        } else {
+          // Wait before retrying (exponential backoff)
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
-
-      // Create blob from response
-      const blob = await response.blob();
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName || 'document';
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(link);
-      
-      toast.success(`Document "${fileName}" downloaded successfully`);
-    } catch (error) {
-      console.error('Download error:', error);
-      toast.error('Failed to download document');
     }
   };
 
