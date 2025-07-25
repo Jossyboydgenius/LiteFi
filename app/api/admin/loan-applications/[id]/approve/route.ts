@@ -62,8 +62,24 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       );
     }
 
-    // Generate unique loan ID
-    const loanId = `LN-${nanoid(10).toUpperCase()}`;
+    // Generate unique loan ID with type prefix
+    const getLoanTypePrefix = (loanType: string) => {
+      switch (loanType) {
+        case 'SALARY_CASH':
+          return 'SL';
+        case 'SALARY_CAR':
+          return 'SC';
+        case 'BUSINESS_CASH':
+          return 'BC';
+        case 'BUSINESS_CAR':
+          return 'BCR';
+        default:
+          return 'LN';
+      }
+    };
+    
+    const typePrefix = getLoanTypePrefix(loanApplication.loanType);
+    const loanId = `LN-${typePrefix}-${nanoid(8).toUpperCase()}`;
 
     // Update loan application status to approved
     const updatedLoanApplication = await prisma.loanApplication.update({

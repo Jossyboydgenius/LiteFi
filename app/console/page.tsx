@@ -654,7 +654,7 @@ export default function AdminDashboard() {
                           {application.user.id || '-'}
                         </TableCell>
                         <TableCell className="font-mono text-sm">
-                           {application.loanId || application.id}
+                           {application.loanId || (application.status === 'APPROVED' ? 'Generating...' : 'N/A')}
                          </TableCell>
                         <TableCell>{formatLoanType(application.loanType)}</TableCell>
                         <TableCell>
@@ -1228,19 +1228,56 @@ function ApplicationDetailsModal({ application, onApprove, onReject }: Applicati
           <Label className="text-sm font-medium text-gray-700">Documents</Label>
           <div className="mt-2">
             {application.documents && application.documents.length > 0 ? (
-              application.documents.map((doc, index) => (
-                <div key={index} className="flex items-center justify-between py-2 border-b">
-                  <span className="text-black">{doc.fileName || doc.documentType || `Document ${index + 1}`}</span>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleDocumentDownload(doc.id, doc.fileName)}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
-              ))
+              application.documents.map((doc, index) => {
+                // Function to get document type from filename or documentType
+                const getDocumentTypeDisplay = (document: any) => {
+                  // Function to format document type names
+                  const formatDocumentType = (type: string) => {
+                    return type
+                      .toLowerCase()
+                      .split('_')
+                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(' ');
+                  };
+                  
+                  if (document.documentType) {
+                    return formatDocumentType(document.documentType);
+                  }
+                  
+                  const fileName = document.fileName || '';
+                  const lowerFileName = fileName.toLowerCase();
+                  
+                  if (lowerFileName.includes('selfie') || lowerFileName.includes('photo')) {
+                    return 'Selfie';
+                  } else if (lowerFileName.includes('utility') || lowerFileName.includes('bill')) {
+                    return 'Utility Bill';
+                  } else if (lowerFileName.includes('id') || lowerFileName.includes('nin') || lowerFileName.includes('bvn')) {
+                    return 'Government ID';
+                  } else if (lowerFileName.includes('work') || lowerFileName.includes('employee')) {
+                    return 'Work ID';
+                  } else if (lowerFileName.includes('cac')) {
+                    return 'CAC Certificate';
+                  } else if (lowerFileName.includes('bank') || lowerFileName.includes('statement')) {
+                    return 'Bank Statement';
+                  } else {
+                    return `Document ${index + 1}`;
+                  }
+                };
+                
+                return (
+                  <div key={index} className="flex items-center justify-between py-2 border-b">
+                    <span className="text-black">{getDocumentTypeDisplay(doc)}</span>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleDocumentDownload(doc.id, doc.fileName)}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                );
+              })
             ) : (
               <p className="text-gray-500">No documents uploaded</p>
             )}

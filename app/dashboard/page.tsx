@@ -291,35 +291,59 @@ export default function Dashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Application ID</TableHead>
-                      <TableHead>Loan Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Applied Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {appliedLoans.map((loan) => (
-                      <TableRow key={loan.id}>
-                        <TableCell className="font-medium">{loan.id}</TableCell>
-                        <TableCell>{formatLoanType(loan.loanType)}</TableCell>
-                        <TableCell>{formatCurrency(loan.loanAmount)}</TableCell>
-                        <TableCell>{getStatusBadge(loan.status)}</TableCell>
-                        <TableCell>{new Date(loan.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm" onClick={() => handleViewLoan(loan)}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                        </TableCell>
+                {/* Mobile View - Simplified */}
+                <div className="md:hidden space-y-4">
+                  {appliedLoans.map((loan) => (
+                    <div key={loan.id} className="border rounded-lg p-4 bg-white">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Amount</p>
+                          <p className="font-semibold text-lg">{formatCurrency(loan.loanAmount)}</p>
+                          <div className="mt-2">{getStatusBadge(loan.status)}</div>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => handleViewLoan(loan)}>
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Desktop/Tablet View - Full Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Loan ID</TableHead>
+                        <TableHead>Loan Type</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Applied Date</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {appliedLoans.map((loan) => (
+                        <TableRow key={loan.id}>
+                          <TableCell className="font-medium">
+                            {loan.loanId || (loan.status === 'APPROVED' ? 'Generating...' : 'N/A')}
+                          </TableCell>
+                          <TableCell>{formatLoanType(loan.loanType)}</TableCell>
+                          <TableCell>{formatCurrency(loan.loanAmount)}</TableCell>
+                          <TableCell>{getStatusBadge(loan.status)}</TableCell>
+                          <TableCell>{new Date(loan.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm" onClick={() => handleViewLoan(loan)}>
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -415,12 +439,12 @@ export default function Dashboard() {
                     <p className="text-sm font-medium text-gray-500">Purpose</p>
                     <p className="text-sm font-semibold">{selectedLoan.purpose || 'Personal use'}</p>
                   </div>
-                  {selectedLoan.loanId && (
-                    <div className="col-span-2">
-                      <p className="text-sm font-medium text-gray-500">Loan ID</p>
-                      <p className="text-sm font-semibold text-green-600">{selectedLoan.loanId}</p>
-                    </div>
-                  )}
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium text-gray-500">Loan ID</p>
+                    <p className="text-sm font-semibold text-green-600">
+                      {selectedLoan.loanId || (selectedLoan.status === 'APPROVED' ? 'Generating...' : 'N/A')}
+                    </p>
+                  </div>
                   {selectedLoan.rejectionReason && (
                     <div className="col-span-2">
                       <p className="text-sm font-medium text-gray-500">Rejection Reason</p>
