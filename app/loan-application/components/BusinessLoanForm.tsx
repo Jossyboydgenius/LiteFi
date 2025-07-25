@@ -139,6 +139,11 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
   const handleInputChange = (field: string, value: string, fieldType?: string) => {
     let processedValue = value;
     
+    // Clear field error if user starts typing (for required field validation)
+    if (fieldErrors[field] === 'This field is required' && value.trim() !== '') {
+      setFieldErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    
     // For number fields (amount fields), format the value with commas
     if (fieldType === "number" && (field.includes('Amount') || field.includes('Salary') || field.includes('Vehicle'))) {
       processedValue = formatAmount(value);
@@ -174,6 +179,11 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
   };
 
   const handleStateChange = (value: string) => {
+    // Clear field error if user selects a state
+    if (fieldErrors['state'] === 'This field is required' && value) {
+      setFieldErrors(prev => ({ ...prev, state: '' }));
+    }
+    
     setSelectedState(value);
     setFormData(prev => ({ ...prev, state: value, localGovernment: "" }));
     updateData('state', value);
@@ -294,11 +304,44 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
     }
   };
 
+  const validateAndHighlightFields = () => {
+    const requiredFields = loanType === "business-cash" 
+      ? ['loanAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'businessName', 'businessDescription', 'industry', 'businessAddress', 'workEmail', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber']
+      : ['loanAmount', 'vehicleMake', 'vehicleModel', 'vehicleYear', 'vehicleAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'businessName', 'businessDescription', 'industry', 'businessAddress', 'workEmail', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber'];
+    
+    const missingFields: string[] = [];
+    const newFieldErrors: Record<string, string> = {};
+    
+    requiredFields.forEach(field => {
+      if (!formData[field] || formData[field].trim() === '') {
+        missingFields.push(field);
+        newFieldErrors[field] = 'This field is required';
+      }
+    });
+    
+    if (missingFields.length > 0) {
+      setFieldErrors(prev => ({ ...prev, ...newFieldErrors }));
+      toast.error(`Please fill in all required fields. ${missingFields.length} field(s) missing.`);
+      
+      // Scroll to first missing field
+      setTimeout(() => {
+        const firstMissingField = document.getElementById(missingFields[0]);
+        if (firstMissingField) {
+          firstMissingField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstMissingField.focus();
+        }
+      }, 100);
+      
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isFormValid()) {
-      toast.error('Please fill in all required fields');
+    if (!validateAndHighlightFields()) {
       return;
     }
 
@@ -565,7 +608,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
               value={(formData[field.name] as string) || ""} 
               onValueChange={handleStateChange}
             >
-              <SelectTrigger className="text-black">
+              <SelectTrigger className={`text-black ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}>
                 <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
@@ -581,10 +624,16 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           return (
             <Select 
               value={(formData[field.name] as string) || ""} 
-              onValueChange={(value: string) => handleInputChange(field.name, value)}
+              onValueChange={(value: string) => {
+                // Clear field error if user makes a selection
+                if (fieldErrors[field.name] === 'This field is required' && value) {
+                  setFieldErrors(prev => ({ ...prev, [field.name]: '' }));
+                }
+                handleInputChange(field.name, value);
+              }}
               disabled={!selectedState}
             >
-              <SelectTrigger className="text-black">
+              <SelectTrigger className={`text-black ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}>
                 <SelectValue placeholder={selectedState ? "Select local government" : "Select state first"} />
               </SelectTrigger>
               <SelectContent>
@@ -599,9 +648,15 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         return (
           <Select 
             value={(formData[field.name] as string) || ""} 
-            onValueChange={(value: string) => handleInputChange(field.name, value)}
+            onValueChange={(value: string) => {
+              // Clear field error if user makes a selection
+              if (fieldErrors[field.name] === 'This field is required' && value) {
+                setFieldErrors(prev => ({ ...prev, [field.name]: '' }));
+              }
+              handleInputChange(field.name, value);
+            }}
           >
-            <SelectTrigger className="text-black">
+            <SelectTrigger className={`text-black ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}>
               <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent>
@@ -614,14 +669,19 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       
       case "textarea":
         return (
-          <Textarea
-            id={field.name}
-            value={(formData[field.name] as string) || ""}
-            onChange={(e) => handleInputChange(field.name, e.target.value)}
-            className="text-black placeholder:text-gray-500"
-            rows={3}
-            required={field.required}
-          />
+          <div className="space-y-1">
+            <Textarea
+              id={field.name}
+              value={(formData[field.name] as string) || ""}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`text-black placeholder:text-gray-500 ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}
+              rows={3}
+              required={field.required}
+            />
+            {fieldErrors[field.name] && (
+              <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+            )}
+          </div>
         );
       
       case "file":
@@ -788,8 +848,8 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
         title: "Loan Amount / Vehicle Details",
         fields: [
           { name: "loanAmount", label: "Loan Amount (₦)", type: "number", required: true },
-          { name: "vehicleMake", label: "Make", type: "text", required: true },
-          { name: "vehicleModel", label: "Model", type: "text", required: true },
+          { name: "vehicleMake", label: "Vehicle Make", type: "text", required: true },
+          { name: "vehicleModel", label: "Vehicle Model", type: "text", required: true },
           { name: "vehicleYear", label: "Year of Vehicle", type: "select", options: Array.from({length: 25}, (_, i) => (2025 - i).toString()), required: true },
           { name: "vehicleAmount", label: "Vehicle Amount (₦)", type: "number", required: true },
           { name: "tenure", label: "Tenure", type: "select", options: Array.from({length: 22}, (_, i) => `${i + 3} months`), required: true }
@@ -920,9 +980,6 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
             <div className="grid md:grid-cols-2 gap-4">
               {section.documents.map((doc) => {
                 const documentType = getDocumentType(doc);
-                const acceptedTypes = documentType === 'SELFIE' 
-                  ? 'image/jpeg,image/png,image/webp,image/jpg'
-                  : 'image/jpeg,image/png,image/webp,image/jpg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
                 
                 return (
                   <div key={doc} className="border rounded-lg p-4 space-y-2">
@@ -936,19 +993,20 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
                         uploadedFile={uploadedFiles[doc]}
                         disabled={isUploading[doc] || isCloudinaryLoading}
                         onWidgetReady={(widget) => registerWidget(doc, widget)}
+                        className="w-full"
                       />
                       <div className="text-xs text-gray-500">
-                        Accepted: {documentType === 'SELFIE' ? 'jpg, png, webp' : 'jpg, png, webp, pdf, doc, docx'}
+                        Accepted: jpg, png, webp, pdf, doc, docx
                       </div>
-                      {fieldErrors[doc] && (
-                        <p className="text-xs text-red-500">{fieldErrors[doc]}</p>
-                      )}
-                      {uploadedFiles[doc]?.cloudinaryResult && (
+                      {uploadedFiles[doc] && !isUploading[doc] && (
                         <div className="text-xs text-gray-500">
-                          <p>File: {uploadedFiles[doc].cloudinaryResult.original_filename || 'Unknown'}</p>
-                          <p>Size: {uploadedFiles[doc].cloudinaryResult.bytes ? (uploadedFiles[doc].cloudinaryResult.bytes / 1024).toFixed(1) : '0'} KB</p>
-                          <p>Type: {uploadedFiles[doc].cloudinaryResult.format || 'Unknown'}</p>
+                          <p>File: {uploadedFiles[doc]?.cloudinaryResult?.original_filename || uploadedFiles[doc]?.tempFile?.fileName || 'Unknown'}</p>
+                          <p>Size: {uploadedFiles[doc]?.cloudinaryResult?.bytes ? (uploadedFiles[doc]!.cloudinaryResult!.bytes / 1024).toFixed(1) : uploadedFiles[doc]?.tempFile ? (uploadedFiles[doc]!.tempFile!.fileSize / 1024).toFixed(1) : '0'} KB</p>
+                          <p>Type: {uploadedFiles[doc]?.cloudinaryResult?.format || uploadedFiles[doc]?.tempFile?.mimeType || 'Unknown'}</p>
                         </div>
+                      )}
+                      {fieldErrors[doc] && (
+                        <p className="text-sm text-red-600">{fieldErrors[doc]}</p>
                       )}
                     </div>
                   </div>
@@ -963,7 +1021,7 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
           <Button
             type="submit"
             className="w-full bg-red-600 hover:bg-red-700"
-            disabled={!isFormValid() || isSubmitting}
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <div className="flex items-center space-x-2">

@@ -143,6 +143,11 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
   };
 
   const handleInputChange = (field: string, value: string, fieldType?: string) => {
+    // Clear field error if user starts typing and field was previously marked as required
+    if (fieldErrors[field] === 'This field is required' && value.trim()) {
+      setFieldErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    
     let processedValue = value;
     
     // For number fields (amount fields), format the value with commas
@@ -180,6 +185,11 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
   };
 
   const handleStateChange = (value: string) => {
+    // Clear field error if user selects a state
+    if (fieldErrors['state'] === 'This field is required' && value) {
+      setFieldErrors(prev => ({ ...prev, state: '' }));
+    }
+    
     setSelectedState(value);
     setFormData(prev => ({ ...prev, state: value, localGovernment: "" }));
     updateData('state', value);
@@ -333,11 +343,41 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
     }
   };
 
+  const validateAndHighlightFields = (): boolean => {
+    const requiredFields = loanType === "salary-cash" 
+      ? ['loanAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber']
+      : ['loanAmount', 'vehicleMake', 'vehicleModel', 'vehicleYear', 'vehicleAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber'];
+    
+    const missingFields = requiredFields.filter(field => !formData[field]);
+    
+    if (missingFields.length > 0) {
+      // Set error messages for missing fields
+      const errors: Record<string, string> = {};
+      missingFields.forEach(field => {
+        errors[field] = 'This field is required';
+      });
+      setFieldErrors(errors);
+      
+      // Show toast message
+      toast.error('Please fill in all highlighted required fields');
+      
+      // Scroll to and focus on the first missing field
+      const firstMissingField = document.getElementById(missingFields[0]);
+      if (firstMissingField) {
+        firstMissingField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstMissingField.focus();
+      }
+      
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isFormValid()) {
-      toast.error('Please fill in all required fields');
+    if (!validateAndHighlightFields()) {
       return;
     }
 
@@ -592,17 +632,22 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
       
       case "date":
         return (
-          <div className="relative">
-            <Input
-              id={field.name}
-              type={field.type}
-              value={(formData[field.name] as string) || ""}
-              onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
-              className="text-black placeholder:text-gray-500 pr-10"
-              required={field.required}
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+          <div className="space-y-1">
+            <div className="relative">
+              <Input
+                id={field.name}
+                type={field.type}
+                value={(formData[field.name] as string) || ""}
+                onChange={(e) => handleInputChange(field.name, e.target.value, field.type)}
+                className={`text-black placeholder:text-gray-500 pr-10 ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}
+                required={field.required}
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              </div>
             </div>
+            {fieldErrors[field.name] && (
+              <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+            )}
           </div>
         );
       
@@ -650,67 +695,99 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         // Special handling for state field
         if (field.name === "state") {
           return (
-            <Select 
-              value={(formData[field.name] as string) || ""} 
-              onValueChange={handleStateChange}
-            >
-              <SelectTrigger className="text-black">
-                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-              </SelectTrigger>
-              <SelectContent>
-                {states.map((state) => (
-                  <SelectItem key={state.alias} value={state.state}>{state.state}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-1">
+              <Select 
+                value={(formData[field.name] as string) || ""} 
+                onValueChange={handleStateChange}
+              >
+                <SelectTrigger className={`text-black ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}>
+                  <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((state) => (
+                    <SelectItem key={state.alias} value={state.state}>{state.state}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fieldErrors[field.name] && (
+                <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+              )}
+            </div>
           );
         }
         // Special handling for local government field
         else if (field.name === "localGovernment") {
           return (
-            <Select 
-              value={(formData[field.name] as string) || ""} 
-              onValueChange={(value: string) => handleInputChange(field.name, value)}
-              disabled={!selectedState}
-            >
-              <SelectTrigger className="text-black">
-                <SelectValue placeholder={selectedState ? "Select local government" : "Select state first"} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableLGAs.map((lga) => (
-                  <SelectItem key={lga} value={lga}>{lga}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-1">
+              <Select 
+                value={(formData[field.name] as string) || ""} 
+                onValueChange={(value: string) => {
+                  // Clear field error if user makes a selection
+                  if (fieldErrors[field.name] === 'This field is required' && value) {
+                    setFieldErrors(prev => ({ ...prev, [field.name]: '' }));
+                  }
+                  handleInputChange(field.name, value);
+                }}
+                disabled={!selectedState}
+              >
+                <SelectTrigger className={`text-black ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}>
+                  <SelectValue placeholder={selectedState ? "Select local government" : "Select state first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableLGAs.map((lga) => (
+                    <SelectItem key={lga} value={lga}>{lga}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fieldErrors[field.name] && (
+                <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+              )}
+            </div>
           );
         }
         // Default handling for other select fields
         return (
-          <Select 
-            value={(formData[field.name] as string) || ""} 
-            onValueChange={(value: string) => handleInputChange(field.name, value)}
-          >
-            <SelectTrigger className="text-black">
-              <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-            </SelectTrigger>
-            <SelectContent>
-              {field.options?.map((option: string) => (
-                <SelectItem key={option} value={option}>{option}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-1">
+            <Select 
+              value={(formData[field.name] as string) || ""} 
+              onValueChange={(value: string) => {
+                // Clear field error if user makes a selection
+                if (fieldErrors[field.name] === 'This field is required' && value) {
+                  setFieldErrors(prev => ({ ...prev, [field.name]: '' }));
+                }
+                handleInputChange(field.name, value);
+              }}
+            >
+              <SelectTrigger className={`text-black ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}>
+                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {field.options?.map((option: string) => (
+                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {fieldErrors[field.name] && (
+              <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+            )}
+          </div>
         );
       
       case "textarea":
         return (
-          <Textarea
-            id={field.name}
-            value={(formData[field.name] as string) || ""}
-            onChange={(e) => handleInputChange(field.name, e.target.value)}
-            className="text-black placeholder:text-gray-500"
-            rows={3}
-            required={field.required}
-          />
+          <div className="space-y-1">
+            <Textarea
+              id={field.name}
+              value={(formData[field.name] as string) || ""}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`text-black placeholder:text-gray-500 ${fieldErrors[field.name] ? 'border-red-500 focus:border-red-500' : ''}`}
+              rows={3}
+              required={field.required}
+            />
+            {fieldErrors[field.name] && (
+              <p className="text-sm text-red-600">{fieldErrors[field.name]}</p>
+            )}
+          </div>
         );
       
       case "file":
@@ -822,8 +899,8 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
         title: "Loan Amount / Vehicle Details",
         fields: [
           { name: "loanAmount", label: "Loan Amount (₦)", type: "number", required: true },
-          { name: "vehicleMake", label: "Make", type: "text", required: true },
-          { name: "vehicleModel", label: "Model", type: "text", required: true },
+          { name: "vehicleMake", label: "Vehicle Make", type: "text", required: true },
+          { name: "vehicleModel", label: "Vehicle Model", type: "text", required: true },
           { name: "vehicleYear", label: "Year of Vehicle", type: "select", options: Array.from({length: 25}, (_, i) => (2025 - i).toString()), required: true },
           { name: "vehicleAmount", label: "Vehicle Amount (₦)", type: "number", required: true },
           { name: "tenure", label: "Tenure", type: "select", options: Array.from({length: 22}, (_, i) => `${i + 3} months`), required: true }
@@ -996,7 +1073,7 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
           <Button
             type="submit"
             className="w-full bg-red-600 hover:bg-red-700"
-            disabled={!isFormValid() || isSubmitting}
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <div className="flex items-center space-x-2">
