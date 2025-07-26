@@ -21,25 +21,25 @@ LiteFi is a comprehensive loan management platform that provides both customer-f
 ### 1. Salary Cash Loans
 - **Target**: Salaried employees seeking cash loans
 - **Application ID Prefix**: `LA-` (Legacy) / `SL-` (New)
-- **Loan ID Prefix**: `LN-SL-`
+- **Loan ID Prefix**: `SC-`
 - **Requirements**: Employment verification, salary slips, bank statements
 
 ### 2. Salary Car Loans
 - **Target**: Salaried employees seeking vehicle financing
 - **Application ID Prefix**: `SCR-`
-- **Loan ID Prefix**: `LN-SCR-`
+- **Loan ID Prefix**: `SCR-`
 - **Requirements**: Employment verification, vehicle details, down payment proof
 
 ### 3. Business Cash Loans
 - **Target**: Business owners seeking working capital
 - **Application ID Prefix**: `BC-`
-- **Loan ID Prefix**: `LN-BC-`
+- **Loan ID Prefix**: `BC-`
 - **Requirements**: CAC documents, business bank statements, financial records
 
 ### 4. Business Car Loans
 - **Target**: Business owners seeking commercial vehicle financing
 - **Application ID Prefix**: `BCR-`
-- **Loan ID Prefix**: `LN-BCR-`
+- **Loan ID Prefix**: `BCR-`
 - **Requirements**: CAC documents, vehicle details, business financials
 
 ## ID Generation System
@@ -75,7 +75,7 @@ const getLoanTypePrefix = (loanType: string): string => {
 };
 
 const typePrefix = getLoanTypePrefix(application.loanType);
-const loanId = `LN-${typePrefix}-${nanoid(10).toUpperCase()}`;
+const loanId = `${typePrefix}-${nanoid(10).toUpperCase()}`;
 ```
 
 **Enhanced Format**: `LN-[TYPE_PREFIX]-[10_CHARACTER_NANOID]`
