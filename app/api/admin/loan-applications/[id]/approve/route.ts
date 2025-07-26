@@ -69,20 +69,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const getLoanTypePrefix = (loanType: string) => {
       switch (loanType) {
         case 'SALARY_CASH':
-          return 'SL';
-        case 'SALARY_CAR':
           return 'SC';
+        case 'SALARY_CAR':
+          return 'SCR';
         case 'BUSINESS_CASH':
           return 'BC';
         case 'BUSINESS_CAR':
           return 'BCR';
         default:
-          return 'LN';
+          return 'GEN';
       }
     };
     
     const typePrefix = getLoanTypePrefix(loanApplication.loanType);
-    const loanId = `LN-${typePrefix}-${nanoid(8).toUpperCase()}`;
+    const loanId = `${typePrefix}-${nanoid(8).toUpperCase()}`;
 
     // Update loan application status to approved
     const updatedLoanApplication = await prisma.loanApplication.update({
@@ -137,9 +137,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         {
           amount: validatedData.approvedAmount,
           formattedAmount: formatCurrency(validatedData.approvedAmount),
-          reference: loanId,
+          loanId: loanId,
           duration: validatedData.approvedTenure,
-          interestRate: validatedData.interestRate,
           totalPayable,
           formattedTotalPayable: formatCurrency(totalPayable),
           disbursementDate: disbursementDate.toLocaleDateString('en-US', {

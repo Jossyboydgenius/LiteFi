@@ -43,7 +43,7 @@ export class EmailService {
     try {
       // Initialize client for template-based emails
       this.templateClient = new SendMailClient({
-        url: 'api.zeptomail.com/',
+        url: 'api.zeptomail.com/v1.1/email/template',
         token: token,
       });
 
@@ -110,8 +110,9 @@ export class EmailService {
       console.log(
         `Sending ${templateType} email to ${recipient.email} using template key: ${templateKey}`,
       );
+      console.log('Template variables being sent:', JSON.stringify(defaultVariables, null, 2));
 
-      await this.templateClient.sendMailWithTemplate({
+      const emailPayload = {
         mail_template_key: templateKey,
         from: {
           address:
@@ -127,7 +128,11 @@ export class EmailService {
           },
         ],
         merge_info: defaultVariables,
-      });
+      };
+      
+      console.log('Full email payload:', JSON.stringify(emailPayload, null, 2));
+      
+      await this.templateClient.sendMailWithTemplate(emailPayload);
 
       console.log(
         `✅ Email sent successfully to ${recipient.email} using template ${templateType}`,
@@ -223,9 +228,8 @@ export class EmailService {
     loanDetails: {
       amount: number;
       formattedAmount: string;
-      reference: string;
+      loanId: string;
       duration: number;
-      interestRate: number;
       totalPayable: number;
       formattedTotalPayable: string;
       disbursementDate: string;
@@ -236,9 +240,8 @@ export class EmailService {
       { email, name },
       {
         formattedAmount: loanDetails.formattedAmount,
-        reference: loanDetails.reference,
+        loanId: loanDetails.loanId,
         duration: loanDetails.duration,
-        interestRate: loanDetails.interestRate,
         formattedTotalPayable: loanDetails.formattedTotalPayable,
         disbursementDate: loanDetails.disbursementDate,
         support_id: process.env.SUPPORT_EMAIL || 'support@litefi.ng',
@@ -256,16 +259,24 @@ export class EmailService {
     loanDetails: {
       amount: number;
       formattedAmount: string;
-      reference: string;
+      applicationId: string;
       loanType: string;
       applicationDate: string;
     },
   ): Promise<boolean> {
+    console.log('📧 Sending loan rejection email to:', email);
+    console.log('📋 Loan details:', {
+      applicationId: loanDetails.applicationId,
+      loanType: loanDetails.loanType,
+      formattedAmount: loanDetails.formattedAmount,
+      applicationDate: loanDetails.applicationDate
+    });
+    
     return this.sendTemplateEmail(
       EmailTemplateType.LOAN_REJECTION,
       { email, name },
       {
-        reference: loanDetails.reference,
+        applicationId: loanDetails.applicationId,
         loanType: loanDetails.loanType,
         formattedAmount: loanDetails.formattedAmount,
         applicationDate: loanDetails.applicationDate,

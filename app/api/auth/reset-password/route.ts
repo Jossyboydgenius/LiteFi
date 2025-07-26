@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     // Store OTP in database
-    await prisma.oTP.create({
+    await prisma.otpVerification.create({
       data: {
-        userId: user.id,
-        code: otp,
+        email: user.email,
+        otpCode: otp,
         type: 'PASSWORD_RESET',
         expiresAt,
       },

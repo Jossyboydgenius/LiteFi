@@ -115,7 +115,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
          {
            amount: loanAmount,
            formattedAmount: formatCurrency(loanAmount),
-           reference: loanApplication.id,
+           applicationId: loanApplication.id,
            loanType: getLoanTypeDisplayName(loanApplication.loanType),
            applicationDate: loanApplication.createdAt.toLocaleDateString('en-US', {
              year: 'numeric',
