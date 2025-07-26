@@ -6,6 +6,7 @@ export enum EmailTemplateType {
   PASSWORD_RESET = 'PASSWORD_RESET',
   WELCOME = 'WELCOME',
   LOAN_APPROVAL = 'LOAN_APPROVAL',
+  LOAN_REJECTION = 'LOAN_REJECTION',
   LOAN_REPAYMENT_REMINDER = 'LOAN_REPAYMENT_REMINDER',
   INVESTMENT_MATURITY = 'INVESTMENT_MATURITY',
   NOTIFICATION = 'NOTIFICATION',
@@ -234,12 +235,42 @@ export class EmailService {
       EmailTemplateType.LOAN_APPROVAL,
       { email, name },
       {
-        loan_amount: loanDetails.formattedAmount,
-        loan_reference: loanDetails.reference,
-        loan_duration: loanDetails.duration,
-        interest_rate: loanDetails.interestRate,
-        total_payable: loanDetails.formattedTotalPayable,
-        disbursement_date: loanDetails.disbursementDate,
+        formattedAmount: loanDetails.formattedAmount,
+        reference: loanDetails.reference,
+        duration: loanDetails.duration,
+        interestRate: loanDetails.interestRate,
+        formattedTotalPayable: loanDetails.formattedTotalPayable,
+        disbursementDate: loanDetails.disbursementDate,
+        support_id: process.env.SUPPORT_EMAIL || 'support@litefi.ng',
+        brand: 'LiteFi',
+      },
+    );
+  }
+
+  /**
+   * Send loan rejection notification
+   */
+  async sendLoanRejectionEmail(
+    email: string,
+    name: string,
+    loanDetails: {
+      amount: number;
+      formattedAmount: string;
+      reference: string;
+      loanType: string;
+      applicationDate: string;
+    },
+  ): Promise<boolean> {
+    return this.sendTemplateEmail(
+      EmailTemplateType.LOAN_REJECTION,
+      { email, name },
+      {
+        reference: loanDetails.reference,
+        loanType: loanDetails.loanType,
+        formattedAmount: loanDetails.formattedAmount,
+        applicationDate: loanDetails.applicationDate,
+        support_id: process.env.SUPPORT_EMAIL || 'support@litefi.ng',
+        brand: 'LiteFi',
       },
     );
   }

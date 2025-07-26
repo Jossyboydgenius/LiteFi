@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getUserFromRequest, checkRole } from '@/lib/jwt';
+import { emailService } from '@/services/email/email.service';
+import { formatCurrency } from '@/lib/formatters';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
 
@@ -32,10 +34,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const body = await request.json();
     const validatedData = approveSchema.parse(body);
+    const { id } = await params;
 
     // Check if loan application exists
     const loanApplication = await prisma.loanApplication.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: {
           select: {
@@ -83,7 +86,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Update loan application status to approved
     const updatedLoanApplication = await prisma.loanApplication.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: 'APPROVED',
         approvedAmount: validatedData.approvedAmount,
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Log the approval action
     await prisma.loanApplicationLog.create({
       data: {
-        loanApplicationId: params.id,
+        loanApplicationId: id,
         action: 'APPROVED',
         performedBy: user.userId,
         notes: validatedData.notes || 'Loan application approved',
@@ -121,6 +124,36 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         },
       },
     });
+
+    // Send loan approval email notification
+    try {
+      const totalPayable = validatedData.approvedAmount + (validatedData.approvedAmount * validatedData.interestRate / 100);
+      const disbursementDate = new Date();
+      disbursementDate.setDate(disbursementDate.getDate() + 3); // 3 days from approval
+      
+      await emailService.sendLoanApprovalEmail(
+        updatedLoanApplication.user.email,
+        updatedLoanApplication.user.firstName,
+        {
+          amount: validatedData.approvedAmount,
+          formattedAmount: formatCurrency(validatedData.approvedAmount),
+          reference: loanId,
+          duration: validatedData.approvedTenure,
+          interestRate: validatedData.interestRate,
+          totalPayable,
+          formattedTotalPayable: formatCurrency(totalPayable),
+          disbursementDate: disbursementDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+        }
+      );
+      console.log(`✅ Loan approval email sent to ${updatedLoanApplication.user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send loan approval email:', emailError);
+      // Don't fail the approval if email fails
+    }
 
     return NextResponse.json({
       success: true,
