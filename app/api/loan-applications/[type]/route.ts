@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import jwt from 'jsonwebtoken';
+import { emailService } from '@/services/email/email.service';
+import { formatCurrency } from '@/lib/formatters';
 
 const prisma = new PrismaClient();
 
@@ -202,6 +204,61 @@ export async function POST(
         notes: `Loan application ${applicationId} created for ${loanType}`,
       },
     });
+
+    // Send loan application notification email
+    try {
+      // Helper function to get loan type display name
+      const getLoanTypeDisplayName = (loanType: string) => {
+        switch (loanType) {
+          case 'SALARY_CASH':
+            return 'Salary Earner Cash Loan';
+          case 'SALARY_CAR':
+            return 'Salary Earner Car Loan';
+          case 'BUSINESS_CASH':
+            return 'Business Cash Loan';
+          case 'BUSINESS_CAR':
+            return 'Business Car Loan';
+          default:
+            return 'Loan';
+        }
+      };
+
+      const loanAmount = Number(loanApplication.loanAmount) || 0;
+      
+      console.log(`📧 Sending LOAN_APPLICATION_NOTIFICATION email to ${loanApplication.user.email}`);
+      console.log('📋 Application details:', {
+        applicationId: loanApplication.applicationId,
+        loanType: getLoanTypeDisplayName(loanApplication.loanType),
+        formattedAmount: formatCurrency(loanAmount),
+        duration: loanApplication.tenure || 0,
+        applicationDate: loanApplication.createdAt.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      });
+      
+      await emailService.sendLoanApplicationNotificationEmail(
+        loanApplication.user.email,
+        loanApplication.user.firstName,
+        {
+          applicationId: loanApplication.applicationId,
+          loanType: getLoanTypeDisplayName(loanApplication.loanType),
+          amount: loanAmount,
+          formattedAmount: formatCurrency(loanAmount),
+          duration: loanApplication.tenure || 0,
+          applicationDate: loanApplication.createdAt.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+        }
+      );
+      console.log(`✅ Loan application notification email sent to ${loanApplication.user.email}`);
+    } catch (emailError) {
+      console.error('❌ Failed to send loan application notification email:', emailError);
+      // Don't fail the application creation if email fails
+    }
 
     return NextResponse.json({
       success: true,

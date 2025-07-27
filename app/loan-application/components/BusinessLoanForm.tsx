@@ -309,32 +309,65 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
       ? ['loanAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'businessName', 'businessDescription', 'industry', 'businessAddress', 'workEmail', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber']
       : ['loanAmount', 'vehicleMake', 'vehicleModel', 'vehicleYear', 'vehicleAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'businessName', 'businessDescription', 'industry', 'businessAddress', 'workEmail', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber'];
     
-    const missingFields: string[] = [];
-    const newFieldErrors: Record<string, string> = {};
-    
+    const missingFields = requiredFields.filter(field => {
+      const value = formData[field];
+      return !value || (typeof value === 'string' && value.trim() === '');
+    });
+
+    const errors: Record<string, string> = {};
+    const invalidFields: string[] = [];
+
+    // Check for missing required fields
+    missingFields.forEach(field => {
+      errors[field] = 'This field is required';
+    });
+
+    // Check for field-specific validation errors (length requirements)
     requiredFields.forEach(field => {
-      if (!formData[field] || formData[field].trim() === '') {
-        missingFields.push(field);
-        newFieldErrors[field] = 'This field is required';
+      const value = formData[field];
+      if (value) {
+        if (field === 'accountNumber' && value.length !== 10) {
+          errors[field] = `Account number must be exactly 10 digits. You entered ${value.length} digits.`;
+          invalidFields.push(field);
+        } else if (field === 'bvn' && value.length !== 11) {
+          errors[field] = `BVN must be exactly 11 digits. You entered ${value.length} digits.`;
+          invalidFields.push(field);
+        } else if (field === 'nin' && value.length > 0 && value.length !== 11) {
+          errors[field] = `NIN must be exactly 11 digits. You entered ${value.length} digits.`;
+          invalidFields.push(field);
+        } else if ((field === 'phoneNumber' || field === 'kinPhoneNumber') && value.length !== 11) {
+          errors[field] = `Phone number must be exactly 11 digits. You entered ${value.length} digits.`;
+          invalidFields.push(field);
+        }
       }
     });
-    
-    if (missingFields.length > 0) {
-      setFieldErrors(prev => ({ ...prev, ...newFieldErrors }));
-      toast.error(`Please fill in all required fields. ${missingFields.length} field(s) missing.`);
+
+    const hasErrors = missingFields.length > 0 || invalidFields.length > 0;
+
+    if (hasErrors) {
+      setFieldErrors(errors);
       
-      // Scroll to first missing field
-      setTimeout(() => {
-        const firstMissingField = document.getElementById(missingFields[0]);
-        if (firstMissingField) {
-          firstMissingField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          firstMissingField.focus();
-        }
-      }, 100);
+      // Show appropriate toast message
+      if (missingFields.length > 0 && invalidFields.length > 0) {
+        toast.error('Please fill in all required fields and correct the highlighted errors');
+      } else if (missingFields.length > 0) {
+        toast.error('Please fill in all highlighted required fields');
+      } else {
+        toast.error('Please correct the highlighted field errors');
+      }
+      
+      // Scroll to and focus on the first problematic field
+      const firstProblemField = missingFields[0] || invalidFields[0];
+      const firstProblemElement = document.getElementById(firstProblemField);
+      if (firstProblemElement) {
+        firstProblemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstProblemElement.focus();
+      }
       
       return false;
     }
-    
+
+    setFieldErrors({});
     return true;
   };
 
@@ -407,6 +440,45 @@ export default function BusinessLoanForm({ loanType }: BusinessLoanFormProps) {
 
        if (!response.ok) {
          const errorData = await response.json();
+         
+         // Handle validation errors from API
+         if (response.status === 400 && errorData.details) {
+           const apiErrors: Record<string, string> = {};
+           const fieldNameMap: Record<string, string> = {
+             'addressNumber': 'addressNo',
+             'nokFirstName': 'kinFirstName',
+             'nokLastName': 'kinLastName',
+             'nokMiddleName': 'kinMiddleName',
+             'nokRelationship': 'kinRelationship',
+             'nokPhone': 'kinPhoneNumber',
+             'nokEmail': 'kinEmail',
+             'yearsInAddress': 'yearsInCurrentAddress',
+             'educationLevel': 'highestEducation'
+           };
+           
+           errorData.details.forEach((detail: string) => {
+             const [fieldPath, message] = detail.split(': ');
+             const frontendFieldName = fieldNameMap[fieldPath] || fieldPath;
+             apiErrors[frontendFieldName] = message;
+           });
+           
+           if (Object.keys(apiErrors).length > 0) {
+             setFieldErrors(apiErrors);
+             toast.error('Please correct the highlighted field errors');
+             
+             // Scroll to first error field
+             const firstErrorField = Object.keys(apiErrors)[0];
+             const firstErrorElement = document.getElementById(firstErrorField);
+             if (firstErrorElement) {
+               firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+               firstErrorElement.focus();
+             }
+             
+             setIsSubmitting(false);
+             return;
+           }
+         }
+         
          throw new Error(errorData.error || 'Failed to submit loan application');
        }
 
