@@ -345,27 +345,58 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
 
   const validateAndHighlightFields = (): boolean => {
     const requiredFields = loanType === "salary-cash" 
-      ? ['loanAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber']
-      : ['loanAmount', 'vehicleMake', 'vehicleModel', 'vehicleYear', 'vehicleAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber'];
+      ? ['loanAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'nin', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber']
+      : ['loanAmount', 'vehicleMake', 'vehicleModel', 'vehicleYear', 'vehicleAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'nin', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber'];
     
     const missingFields = requiredFields.filter(field => !formData[field]);
+    const invalidFields: string[] = [];
+    const errors: Record<string, string> = {};
     
-    if (missingFields.length > 0) {
-      // Set error messages for missing fields
-      const errors: Record<string, string> = {};
-      missingFields.forEach(field => {
-        errors[field] = 'This field is required';
-      });
+    // Check for missing required fields
+    missingFields.forEach(field => {
+      errors[field] = 'This field is required';
+    });
+    
+    // Check for field-specific validation errors (length requirements)
+    requiredFields.forEach(field => {
+      const value = formData[field];
+      if (value) {
+        if (field === 'accountNumber' && value.length !== 10) {
+          errors[field] = `Account number must be exactly 10 digits. You entered ${value.length} digits.`;
+          invalidFields.push(field);
+        } else if (field === 'bvn' && value.length !== 11) {
+          errors[field] = `BVN must be exactly 11 digits. You entered ${value.length} digits.`;
+          invalidFields.push(field);
+        } else if (field === 'nin' && value.length !== 11) {
+          errors[field] = `NIN must be exactly 11 digits. You entered ${value.length} digits.`;
+          invalidFields.push(field);
+        } else if ((field === 'phoneNumber' || field === 'kinPhoneNumber') && value.length !== 11) {
+          errors[field] = `Phone number must be exactly 11 digits. You entered ${value.length} digits.`;
+          invalidFields.push(field);
+        }
+      }
+    });
+    
+    const hasErrors = missingFields.length > 0 || invalidFields.length > 0;
+    
+    if (hasErrors) {
       setFieldErrors(errors);
       
-      // Show toast message
-      toast.error('Please fill in all highlighted required fields');
+      // Show appropriate toast message
+      if (missingFields.length > 0 && invalidFields.length > 0) {
+        toast.error('Please fill in all required fields and correct the highlighted errors');
+      } else if (missingFields.length > 0) {
+        toast.error('Please fill in all highlighted required fields');
+      } else {
+        toast.error('Please correct the highlighted field errors');
+      }
       
-      // Scroll to and focus on the first missing field
-      const firstMissingField = document.getElementById(missingFields[0]);
-      if (firstMissingField) {
-        firstMissingField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        firstMissingField.focus();
+      // Scroll to and focus on the first problematic field
+      const firstProblemField = missingFields[0] || invalidFields[0];
+      const firstProblemElement = document.getElementById(firstProblemField);
+      if (firstProblemElement) {
+        firstProblemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstProblemElement.focus();
       }
       
       return false;
@@ -484,9 +515,20 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
              }
            });
            
-           // Set field errors and show a general toast
+           // Set field errors and show appropriate toast message
            setFieldErrors(validationErrors);
-           toast.error('Please correct the highlighted fields and try again.');
+           
+           // Scroll to the first error field
+           const firstErrorField = Object.keys(validationErrors)[0];
+           if (firstErrorField) {
+             const firstErrorElement = document.getElementById(firstErrorField);
+             if (firstErrorElement) {
+               firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+               firstErrorElement.focus();
+             }
+           }
+           
+           toast.error('Please correct the highlighted field errors and try again.');
            return;
          }
          
@@ -601,8 +643,8 @@ export default function SalaryLoanForm({ loanType }: SalaryLoanFormProps) {
 
   const isFormValid = () => {
     const requiredFields = loanType === "salary-cash" 
-      ? ['loanAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber']
-      : ['loanAmount', 'vehicleMake', 'vehicleModel', 'vehicleYear', 'vehicleAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber'];
+      ? ['loanAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'nin', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber']
+      : ['loanAmount', 'vehicleMake', 'vehicleModel', 'vehicleYear', 'vehicleAmount', 'tenure', 'firstName', 'lastName', 'phoneNumber', 'email', 'bvn', 'nin', 'addressNo', 'streetName', 'state', 'localGovernment', 'homeOwnership', 'yearsInCurrentAddress', 'maritalStatus', 'highestEducation', 'employerName', 'employerAddress', 'jobTitle', 'workEmail', 'employmentStartDate', 'salaryPaymentDate', 'netSalary', 'kinFirstName', 'kinLastName', 'kinRelationship', 'kinPhoneNumber', 'kinEmail', 'bankName', 'accountName', 'accountNumber'];
     
     // Only check if all required form fields are filled
     // Documents are optional and don't prevent form submission
