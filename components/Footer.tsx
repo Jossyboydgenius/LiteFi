@@ -93,7 +93,7 @@ export default function Footer() {
               </Link>
             </div>
             <div className="flex justify-start">
-              <img src="/assets/images/badge.png" alt="Badge" className="h-32 w-auto mt-2" />
+              <Image src="/assets/images/badge.png" alt="Badge" width={128} height={128} className="h-32 w-auto mt-2" />
             </div>
           </div>
         </div>

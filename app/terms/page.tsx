@@ -13,9 +13,9 @@ export default function TermsOfUsePage() {
               <Image 
                 src="/assets/images/logo.png" 
                 alt="LiteFi Logo" 
-                width={120}
-                height={36}
-                style={{ width: 'auto', height: 'auto' }}
+                width={80}
+                height={24}
+                // style={{ width: 'auto', height: 'auto' }}
               />
             </Link>
             <Link 
@@ -31,164 +31,172 @@ export default function TermsOfUsePage() {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Use</h1>
-          <p className="text-gray-600 mb-8">Effective Date: January 1, 2025</p>
+          {/* Header with centered title and right-aligned address */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">LiteFi Limited Terms of Use</h1>
+            <div className="text-gray-600 text-right text-sm">
+              <p><strong>LiteFi Limited</strong></p>
+              <p>9A, Hospital Road, Gbagada, Lagos</p>
+              <p>📞 07039439340, 07081040689</p>
+              <p>🌐 <a href="http://litefi.ng" className="text-red-600 hover:underline">LiteFi.ng</a></p>
+              <p>✉️ support@litefi.ng</p>
+            </div>
+          </div>
 
           <div className="prose prose-gray max-w-none">
             <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">1. Acceptance of Terms</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">1. Introduction and Acceptance of Terms</h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                Welcome to LiteFi Microfinance Bank ("LiteFi," "we," "us," or "our"). These Terms of Use ("Terms") 
-                govern your access to and use of our website, mobile applications, and financial services 
-                (collectively, the "Services"). By accessing or using our Services, you agree to be bound by these Terms.
+                Welcome to LiteFi Limited. These Terms govern your access to and use of LiteFi Limited's digital lending, credit facilities, and related financial services ("Services") in Nigeria.
+              </p>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                By using our Services, you agree to be bound by these Terms and our Privacy Policy.
+              </p>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                Do not use our Services if you disagree with any part of these Terms.
               </p>
               <p className="text-gray-700 leading-relaxed">
-                If you do not agree to these Terms, please do not use our Services. We may update these Terms 
-                from time to time, and your continued use of our Services constitutes acceptance of any changes.
+                LiteFi is licensed under the Lagos State Money Lenders Law. We may revise these Terms anytime, and updates are effective immediately upon posting.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">2. About LiteFi</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">2. Our Services</h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                LiteFi is a licensed microfinance bank providing digital financial services including:
+                LiteFi provides lending and credit services, including:
               </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Digital wallet services and money transfers</li>
-                <li>Microloans and credit facilities</li>
-                <li>Investment and savings products</li>
-                <li>Financial planning and advisory services</li>
-              </ul>
-              <p className="text-gray-700 leading-relaxed">
-                Our Services are regulated by the Central Bank and we are committed to providing secure, 
-                reliable financial solutions to help you achieve financial freedom.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">3. Eligibility and Account Registration</h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
-                To use our Services, you must:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Be at least 18 years of age</li>
-                <li>Have legal capacity to enter into binding agreements</li>
-                <li>Provide accurate, complete, and current information during registration</li>
-                <li>Maintain the security of your account credentials</li>
-                <li>Comply with all applicable laws and regulations</li>
-              </ul>
-              <p className="text-gray-700 leading-relaxed">
-                You are responsible for all activities that occur under your account. Please notify us immediately 
-                of any unauthorized use of your account.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">4. Financial Services Terms</h2>
               
-              <h3 className="text-lg font-medium text-gray-900 mb-3">4.1 Loans and Credit</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">2.1 Personal Loans</h3>
               <p className="text-gray-700 leading-relaxed mb-4">
-                Loan approvals are subject to our credit assessment and risk evaluation. Interest rates, 
-                fees, and repayment terms will be clearly disclosed before you accept any loan offer. 
-                Late payments may result in additional fees and impact your credit score.
+                For emergencies, education, medical expenses, etc., based on income and creditworthiness.
               </p>
-
-              <h3 className="text-lg font-medium text-gray-900 mb-3">4.2 Investment Services</h3>
+              
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">2.2 Business / Corporate Loans</h3>
               <p className="text-gray-700 leading-relaxed mb-4">
-                Investment products carry inherent risks, and past performance does not guarantee future results. 
-                We provide information and tools to help you make informed decisions, but you are responsible 
-                for your investment choices.
+                For working capital, asset acquisition, etc., based on business financial health.
               </p>
-
-              <h3 className="text-lg font-medium text-gray-900 mb-3">4.3 Digital Wallet</h3>
+              
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">2.3 Auto Loan for Salary Earner</h3>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                For purchasing vehicles, based on salaried employment.
+              </p>
+              
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">2.4 Auto Loan for Corporate</h3>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                For companies needing vehicles for operations.
+              </p>
+              
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">2.5 Dealer Finance Loans</h3>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                For vehicle dealerships to fund inventory or operations.
+              </p>
+              
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">2.6 On-Lending Arrangements</h3>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                LiteFi may act as an intermediary for third-party licensed Partner Banks.
+              </p>
+              
               <p className="text-gray-700 leading-relaxed">
-                Your digital wallet allows you to store, send, and receive money electronically. Transaction 
-                limits and fees apply as disclosed in our fee schedule. We use industry-standard security 
-                measures to protect your funds.
+                Each loan will have a specific Loan Agreement outlining terms, interest, fees, and conditions.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">5. Fees and Charges</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">7. Data Protection and Privacy</h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                Our current fee schedule is available on our website and in your account dashboard. 
-                We reserve the right to modify fees with 30 days' advance notice. You will be notified 
-                of any fee changes through email or in-app notifications.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">6. Privacy and Data Protection</h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
-                We take your privacy seriously. Our collection, use, and protection of your personal 
-                information is governed by our Privacy Policy, which is incorporated into these Terms by reference.
+                We collect, process, and protect your personal data in accordance with our Privacy Policy and the Nigeria Data Protection Act 2023.
               </p>
               <p className="text-gray-700 leading-relaxed">
-                By using our Services, you consent to the collection and use of your information as 
-                described in our Privacy Policy.
+                By using our Services, you consent to our data processing practices as outlined in our Privacy Policy.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">7. Prohibited Activities</h2>
-              <p className="text-gray-700 leading-relaxed mb-4">You agree not to:</p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">8. Prohibited Uses and User Conduct</h2>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                You agree not to:
+              </p>
               <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Use our Services for any illegal or unauthorized purpose</li>
-                <li>Violate any laws, regulations, or third-party rights</li>
-                <li>Engage in fraudulent, deceptive, or misleading activities</li>
-                <li>Attempt to gain unauthorized access to our systems</li>
-                <li>Interfere with or disrupt our Services</li>
-                <li>Use our Services to launder money or finance terrorism</li>
+                <li>Provide false or misleading information</li>
+                <li>Use our Services for illegal activities</li>
+                <li>Attempt to circumvent our security measures</li>
+                <li>Interfere with our systems or other users</li>
+                <li>Violate any applicable laws or regulations</li>
               </ul>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">8. Limitation of Liability</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">9. Intellectual Property Rights</h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                To the maximum extent permitted by law, LiteFi shall not be liable for any indirect, 
-                incidental, special, consequential, or punitive damages, including but not limited to 
-                loss of profits, data, or business opportunities.
+                All content, trademarks, and intellectual property on our platform belong to LiteFi Limited or our licensors.
               </p>
               <p className="text-gray-700 leading-relaxed">
-                Our total liability to you for any claims arising from or related to these Terms or 
-                our Services shall not exceed the amount of fees you paid to us in the 12 months 
-                preceding the claim.
+                You may not reproduce, distribute, or create derivative works without our written permission.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">9. Termination</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">10. Limitation of Liability and Disclaimers</h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                You may terminate your account at any time by contacting our customer support. 
-                We may suspend or terminate your account if you violate these Terms or engage 
-                in activities that pose a risk to us or other users.
+                Our Services are provided "as is" without warranties. We are not liable for indirect, incidental, or consequential damages.
               </p>
               <p className="text-gray-700 leading-relaxed">
-                Upon termination, you remain liable for any outstanding obligations, and we will 
-                return any remaining account balance in accordance with applicable laws.
+                Our total liability is limited to the amount of fees you paid to us in the 12 months preceding the claim.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">10. Governing Law</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">11. Indemnification</h2>
               <p className="text-gray-700 leading-relaxed">
-                These Terms are governed by the laws of Nigeria. Any disputes arising 
-                from these Terms or our Services shall be resolved through binding arbitration 
-                in accordance with the rules of the Nigerian Arbitration and Conciliation Act.
+                You agree to indemnify and hold LiteFi Limited harmless from any claims, damages, or expenses arising from your use of our Services or violation of these Terms.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">11. Contact Information</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">12. Termination</h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                If you have any questions about these Terms, please contact us:
+                We may terminate or suspend your account at any time for violation of these Terms or other reasons.
               </p>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-gray-700"><strong>Email:</strong> legal@litefi.ng</p>
-                <p className="text-gray-700"><strong>Phone:</strong> +234 (0) 800 123 4567</p>
-                <p className="text-gray-700"><strong>Address:</strong> 123 Financial District, Victoria Island, Lagos, Nigeria</p>
-              </div>
+              <p className="text-gray-700 leading-relaxed">
+                You may close your account at any time, subject to outstanding obligations.
+              </p>
             </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">13. Governing Law and Dispute Resolution</h2>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                These Terms are governed by Nigerian law. Disputes will be resolved through arbitration in Lagos, Nigeria.
+              </p>
+              <p className="text-gray-700 leading-relaxed">
+                You may also file complaints with relevant regulatory authorities.
+              </p>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">14. Amendments and Updates</h2>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                We may update these Terms at any time. Changes are effective immediately upon posting.
+              </p>
+              <p className="text-gray-700 leading-relaxed">
+                Continued use of our Services constitutes acceptance of updated Terms.
+              </p>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">15. Severability</h2>
+              <p className="text-gray-700 leading-relaxed">
+                If any provision of these Terms is found invalid, the remaining provisions will continue in full force.
+              </p>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">16. Entire Agreement</h2>
+              <p className="text-gray-700 leading-relaxed">
+                These Terms, together with our Privacy Policy and any Loan Agreements, constitute the entire agreement between you and LiteFi Limited.
+              </p>
+            </section>
+
+
           </div>
 
           {/* Footer Links */}

@@ -216,6 +216,7 @@ export class EmailService {
       { email, name: firstName },
       {
         first_name: firstName,
+        recipient_name: firstName,
       },
     );
   }

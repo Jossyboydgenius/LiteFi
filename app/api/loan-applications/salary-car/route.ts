@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/jwt';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
+import { emailService } from '@/services/email/email.service';
+import { formatCurrency } from '@/lib/formatters';
 
 const salaryCarLoanSchema = z.object({
   loanAmount: z.number().positive('Loan amount must be positive'),
@@ -116,6 +118,32 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Send loan application notification email
+    try {
+      const loanAmount = Number(validatedData.loanAmount) || 0;
+      
+      await emailService.sendLoanApplicationNotificationEmail(
+        loanApplication.user.email,
+        loanApplication.user.firstName,
+        {
+          applicationId: loanApplication.applicationId,
+          loanType: 'Salary Car Loan',
+          amount: loanAmount,
+          formattedAmount: formatCurrency(loanAmount),
+          duration: 12, // Default for car loans (months)
+          applicationDate: loanApplication.createdAt.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+        }
+      );
+      console.log(`✅ Loan application notification email sent to ${loanApplication.user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send loan application notification email:', emailError);
+      // Don't fail the application if email fails
+    }
 
     return NextResponse.json({
       success: true,

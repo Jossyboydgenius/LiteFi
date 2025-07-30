@@ -31,8 +31,11 @@ export default function Navbar() {
     }
 
     const scrollPosition = window.scrollY + 100
+    const windowHeight = window.innerHeight
+    const documentHeight = document.documentElement.scrollHeight
 
-    if (scrollPosition >= sections.contact) {
+    // Check if we're near the bottom of the page (footer/contact section)
+    if (scrollPosition + windowHeight >= documentHeight - 100) {
       setActiveSection("contact")
     } else if (scrollPosition >= sections.calculator) {
       setActiveSection("calculator")
