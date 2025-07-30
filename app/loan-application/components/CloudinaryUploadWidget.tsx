@@ -36,8 +36,8 @@ export default function CloudinaryUploadWidget({
   
   // Configure upload options based on document type
   const uploadOptions = React.useMemo(() => ({
-    cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dxbizi45p',
-    apiKey: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || '576182982358129',
+    cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
     // Remove uploadPreset when using signed uploads with signatureEndpoint
     folder: isSelfie ? 'litefi/profiles' : 'litefi/documents',
     resourceType: 'auto' as const,

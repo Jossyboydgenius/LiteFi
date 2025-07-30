@@ -3,9 +3,9 @@ import { nanoid } from 'nanoid';
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dxbizi45p',
-  api_key: process.env.CLOUDINARY_API_KEY || '576182982358129',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'i6smsA5wOP2KoPg_fNqOBOvBkOU',
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 export interface CloudinaryUploadResult {

@@ -15,9 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format, parse, isValid } from "date-fns"
+import { format, addMonths } from "date-fns"
 import { toPng } from 'html-to-image'
 
 // Format number with commas as thousand separators
@@ -25,19 +23,34 @@ const formatNumberWithCommas = (num: number) => {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
 
+interface CalculationResult {
+  principalAmount: number;
+  interestRatePerMonth: number;
+  tenureMonths: number;
+  totalInterest: number;
+  withholdingTax: number;
+  actualPayout: number;
+  totalAmount: number;
+  formattedPrincipal: string;
+  formattedTotalInterest: string;
+  formattedWithholdingTax: string;
+  formattedActualPayout: string;
+  formattedTotalAmount: string;
+}
+
 export default function CalculatorSection() {
-  const [investment, setInvestment] = useState(100000)
-  const [currency, setCurrency] = useState("EUR")
-  const [tenure, setTenure] = useState("12 months")
+  const [investment, setInvestment] = useState(1000000)
+  const [currency, setCurrency] = useState("NGN")
+  const [tenure, setTenure] = useState("3 months")
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
-  const [startDateInput, setStartDateInput] = useState("")
-  const [endDateInput, setEndDateInput] = useState("")
-  const [startOpen, setStartOpen] = useState(false)
-  const [endOpen, setEndOpen] = useState(false)
+  const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null)
+  const [isCalculating, setIsCalculating] = useState(false)
   
   // Reference for the investment breakdown section
   const breakdownRef = useRef<HTMLDivElement>(null)
+  
+  // Interest rate is fixed at 2% per month
+  const interestRatePerMonth = 2
   
   // Currency flag emoji mapping
   const currencyFlags = {
@@ -47,77 +60,53 @@ export default function CalculatorSection() {
     EUR: "🇪🇺", // European Union
   }
 
-  // Format the input as dd/mm/yyyy while typing
-  const formatDateInput = (value: string): string => {
-    // Remove all non-digits
-    const digits = value.replace(/\D/g, "")
-    
-    // Format as dd/mm/yyyy
-    if (digits.length <= 2) {
-      return digits
-    } else if (digits.length <= 4) {
-      return `${digits.substring(0, 2)}/${digits.substring(2)}`
+  // Handle start date change with native date picker
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    if (value) {
+      setStartDate(new Date(value))
     } else {
-      return `${digits.substring(0, 2)}/${digits.substring(2, 4)}/${digits.substring(4, 8)}`
+      setStartDate(undefined)
     }
   }
-
-  // Handle manual date input
-  const handleStartDateInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    
-    // Only allow formatted input
-    const formattedValue = formatDateInput(value)
-    setStartDateInput(formattedValue)
-    
-    // Try to parse the date if in correct format
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(formattedValue)) {
-      try {
-        const parsedDate = parse(formattedValue, "dd/MM/yyyy", new Date())
-        if (isValid(parsedDate)) {
-          setStartDate(parsedDate)
-        }
-      } catch (error) {
-        // Invalid date format, do nothing
+  
+  // Calculate maturity date based on start date and tenure
+  const getMaturityDate = (): Date | null => {
+    if (!startDate || !tenure) return null;
+    const tenureMonths = parseInt(tenure.replace(' months', ''));
+    return addMonths(startDate, tenureMonths);
+  };
+  
+  // Calculate investment returns
+  const calculateInvestment = async () => {
+    setIsCalculating(true)
+    try {
+      const tenureMonths = parseInt(tenure.split(' ')[0])
+      
+      const response = await fetch('/api/investment-calculator', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          investmentAmount: investment,
+          interestRatePerMonth,
+          tenureMonths,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to calculate investment')
       }
+      
+      const data = await response.json()
+      setCalculationResult(data.calculation)
+    } catch (error) {
+      console.error('Error calculating investment:', error)
+      // You could add toast notification here
+    } finally {
+      setIsCalculating(false)
     }
-  }
-
-  const handleEndDateInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    
-    // Only allow formatted input
-    const formattedValue = formatDateInput(value)
-    setEndDateInput(formattedValue)
-    
-    // Try to parse the date if in correct format
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(formattedValue)) {
-      try {
-        const parsedDate = parse(formattedValue, "dd/MM/yyyy", new Date())
-        if (isValid(parsedDate)) {
-          setEndDate(parsedDate)
-        }
-      } catch (error) {
-        // Invalid date format, do nothing
-      }
-    }
-  }
-
-  // Update input field when date is selected from calendar
-  const handleStartDateSelect = (date: Date | undefined) => {
-    setStartDate(date)
-    if (date) {
-      setStartDateInput(format(date, "dd/MM/yyyy"))
-    }
-    setStartOpen(false) // Close the popover after selection
-  }
-
-  const handleEndDateSelect = (date: Date | undefined) => {
-    setEndDate(date)
-    if (date) {
-      setEndDateInput(format(date, "dd/MM/yyyy"))
-    }
-    setEndOpen(false) // Close the popover after selection
   }
   
   // Format investment input with thousand separators
@@ -240,99 +229,25 @@ export default function CalculatorSection() {
                   </Select>
                 </div>
 
-                <div className="mb-10">
+                <div className="mb-12">
                   <label className="block text-gray-600 mb-4">Start Date</label>
                   <div className="relative">
-                    <Popover open={startOpen} onOpenChange={setStartOpen}>
-                      <PopoverTrigger asChild>
-                        <div className="relative cursor-pointer">
-                          <Input
-                            type="text"
-                            placeholder="dd/mm/yyyy"
-                            value={startDateInput}
-                            onChange={handleStartDateInput}
-                            maxLength={10}
-                            className="bg-white border-0 shadow-sm focus:ring-0 h-14 text-black pr-10"
-                            onClick={() => setStartOpen(true)}
-                          />
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none calendar-icon">
-                            <Image 
-                              src={calendarIcon} 
-                              alt="Calendar" 
-                              width={20} 
-                              height={20}
-                              className="w-5 h-5"
-                            />
-                          </div>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent 
-                        className="w-auto p-0 bg-white shadow-lg border border-gray-200" 
-                        align="start"
-                      >
-                        <div className="p-2 bg-white">
-                          <Calendar
-                            mode="single"
-                            selected={startDate}
-                            onSelect={handleStartDateSelect}
-                            initialFocus
-                            defaultMonth={new Date(2025, 3, 1)} // April 2025
-                            className="text-black bg-white"
-                          />
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                <div className="mb-12">
-                  <label className="block text-gray-600 mb-4">End Date</label>
-                  <div className="relative">
-                    <Popover open={endOpen} onOpenChange={setEndOpen}>
-                      <PopoverTrigger asChild>
-                        <div className="relative cursor-pointer">
-                          <Input
-                            type="text"
-                            placeholder="dd/mm/yyyy"
-                            value={endDateInput}
-                            onChange={handleEndDateInput}
-                            maxLength={10}
-                            className="bg-white border-0 shadow-sm focus:ring-0 h-14 text-black pr-10"
-                            onClick={() => setEndOpen(true)}
-                          />
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none calendar-icon">
-                            <Image 
-                              src={calendarIcon} 
-                              alt="Calendar" 
-                              width={20} 
-                              height={20}
-                              className="w-5 h-5"
-                            />
-                          </div>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent 
-                        className="w-auto p-0 bg-white shadow-lg border border-gray-200" 
-                        align="start"
-                      >
-                        <div className="p-2 bg-white">
-                          <Calendar
-                            mode="single"
-                            selected={endDate}
-                            onSelect={handleEndDateSelect}
-                            initialFocus
-                            defaultMonth={new Date(2026, 3, 1)} // April 2026
-                            className="text-black bg-white"
-                          />
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                    <Input
+                      type="date"
+                      value={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
+                      onChange={handleStartDateChange}
+                      className="bg-white border-0 shadow-sm focus:ring-0 h-14 text-black"
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <Button className="bg-red-600 hover:bg-red-700 text-white w-full h-16 text-base font-medium">
-                    Calculate
+                  <Button 
+                    onClick={calculateInvestment}
+                    disabled={isCalculating}
+                    className="bg-red-600 hover:bg-red-700 text-white w-full h-16 text-base font-medium disabled:opacity-50"
+                  >
+                    {isCalculating ? 'Calculating...' : 'Calculate'}
                   </Button>
                 </div>
               </div>
@@ -359,8 +274,15 @@ export default function CalculatorSection() {
                   <div className="flex items-center justify-between investment-data-row">
                     <div className="flex-1 mr-4">
                       <div className="flex flex-col">
-                        <span className="text-2xl font-bold xs:text-xl">${formatNumberWithCommas(100000)}</span>
-                        <span className="text-green-500 text-sm xs:text-xs">+$2.30 (+1.3%)</span>
+                        <span className="text-2xl font-bold xs:text-xl">
+                          {currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '€'}
+                          {formatNumberWithCommas(calculationResult?.totalAmount || investment)}
+                        </span>
+                        <span className="text-green-500 text-sm xs:text-xs">
+                          +{currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '€'}
+                          {formatNumberWithCommas(calculationResult?.actualPayout || 0)} 
+                          ({calculationResult ? ((calculationResult.actualPayout / calculationResult.principalAmount) * 100).toFixed(1) : '0.0'}%)
+                        </span>
                       </div>
                     </div>
                     <div className="flex justify-end flex-shrink-0" style={{ width: '120px', height: '60px' }}>
@@ -384,17 +306,20 @@ export default function CalculatorSection() {
                   <div className="space-y-7 xs:space-y-5">
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Principal Amount</span>
-                      <span className="font-bold text-black xs:text-base">{formatNumberWithCommas(100000)}</span>
+                      <span className="font-bold text-black xs:text-base">
+                        {currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '€'}
+                        {formatNumberWithCommas(calculationResult?.principalAmount || investment)}
+                      </span>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Tenure</span>
-                      <span className="font-bold text-black xs:text-base">12 months</span>
+                      <span className="font-bold text-black xs:text-base">{tenure}</span>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Start Date</span>
-                      <span className="font-bold text-black xs:text-base">{startDate ? format(startDate, "do MMMM yyyy") : "5th April 2025"}</span>
+                      <span className="font-bold text-black xs:text-base">{startDate ? format(startDate, "do MMMM yyyy") : "17th July 2025"}</span>
                     </div>
 
                     <div className="flex justify-between">
@@ -403,23 +328,34 @@ export default function CalculatorSection() {
                         <span className="bg-green-50 text-green-600 text-xs px-2 py-1 rounded-sm">
                           Matured
                         </span>
-                        <span className="font-bold text-black xs:text-base">{endDate ? format(endDate, "do MMMM yyyy") : "5th April 2026"}</span>
+                        <span className="font-bold text-black xs:text-base">
+                          {getMaturityDate() ? format(getMaturityDate()!, "do MMMM yyyy") : "5th April 2026"}
+                        </span>
                       </div>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Earning</span>
-                      <span className="font-bold text-black xs:text-base">{formatNumberWithCommas(75000)}</span>
+                      <span className="font-bold text-black xs:text-base">
+                        {currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '€'}
+                        {formatNumberWithCommas(calculationResult?.actualPayout || 75000)}
+                      </span>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Withholding Tax</span>
-                      <span className="font-bold text-black xs:text-base">{formatNumberWithCommas(2000)}</span>
+                      <span className="font-bold text-black xs:text-base">
+                        {currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '€'}
+                        {formatNumberWithCommas(calculationResult?.withholdingTax || 2000)}
+                      </span>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-gray-600 xs:text-sm">Total Payouts</span>
-                      <span className="font-bold text-black xs:text-base">{formatNumberWithCommas(250000)}</span>
+                      <span className="font-bold text-black xs:text-base">
+                        {currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '€'}
+                        {formatNumberWithCommas(calculationResult?.totalAmount || 250000)}
+                      </span>
                     </div>
                   </div>
                 </div>

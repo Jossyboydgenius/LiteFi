@@ -4,9 +4,9 @@ import { getUserFromRequest } from '@/lib/jwt';
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dxbizi45p',
-  api_key: process.env.CLOUDINARY_API_KEY || '576182982358129',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'i6smsA5wOP2KoPg_fNqOBOvBkOU',
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 export async function POST(request: NextRequest) {
@@ -31,9 +31,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate signature for the upload parameters
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    if (!apiSecret) {
+      return NextResponse.json(
+        { error: 'Cloudinary API secret not configured' },
+        { status: 500 }
+      );
+    }
+    
     const signature = cloudinary.utils.api_sign_request(
       paramsToSign,
-      process.env.CLOUDINARY_API_SECRET || 'i6smsA5wOP2KoPg_fNqOBOvBkOU'
+      apiSecret
     );
 
     return NextResponse.json({ signature });

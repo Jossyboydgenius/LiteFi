@@ -70,6 +70,18 @@ export async function POST(request: NextRequest) {
       // Don't fail registration if email fails
     }
 
+    // Send welcome email
+    try {
+      await emailService.sendWelcomeEmail(
+        user.email,
+        user.firstName
+      );
+      console.log(`✅ Welcome email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Don't fail registration if welcome email fails
+    }
+
     // Generate JWT token
     const token = generateToken({
       userId: user.id,

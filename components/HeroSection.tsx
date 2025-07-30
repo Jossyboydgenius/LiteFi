@@ -4,11 +4,12 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import heroImg from "@/assets/images/hero.png"
+import heroBg from "@/assets/images/hero-bg.png"
 import circularLogo from "@/assets/svgs/circular-logo.svg"
 
 export default function HeroSection() {
   return (
-    <section id="hero" className="bg-black pt-28 pb-0 md:pt-36 md:pb-0 relative">
+    <section id="hero" className="pt-28 pb-0 md:pt-36 md:pb-0 relative" style={{backgroundImage: `url(${heroBg.src})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat'}}>
       <div className="container mx-auto container-padding relative z-10">
         <div className="flex flex-col items-center text-center">
           {/* Circular logo and text in a pill container */}
